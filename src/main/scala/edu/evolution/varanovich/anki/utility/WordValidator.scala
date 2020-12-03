@@ -1,5 +1,7 @@
 package edu.evolution.varanovich.anki.utility
 
+import edu.evolution.varanovich.anki.utility.VocabularyConfig.{MaxEngWordLength, MaxPhraseLength, MaxRusWordLength}
+
 import scala.util.matching.Regex
 
 object WordValidator {
