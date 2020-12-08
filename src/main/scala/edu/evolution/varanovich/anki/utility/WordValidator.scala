@@ -28,7 +28,7 @@ object WordValidator {
    * String should start from letter and end with letter
    */
   def validTranslation(value: String): Boolean =
-    matches(value, "^[ЁёА-я]{1}[ЁёА-я,\\-\\s]*[ЁёА-я]{1}$".r) && (value.length <= MaxRusWordLength)
+    matches(value, "^[ЁёА-я]{1}[ЁёА-я,.)(\\-\\s]*[ЁёА-я.)(]*$".r) && (value.length <= MaxRusWordLength)
 
   /**
    * Value string can start from english or russian ABC letter or number;
@@ -36,7 +36,7 @@ object WordValidator {
    * can end with english or russian ABC letter, number, ending punctuation and percent
    */
   def validPhrase(value: String): Boolean =
-    matches(value, "^[A-Za-zЁёА-я0-9]{1}[A-Za-zЁёА-я0-9.,:;?!&%\"\'\\-\\s]*[A-Za-zЁёА-я0-9.?!%\"\']{1}$".r) &&
+    matches(value, "^[A-Za-zЁёА-я0-9]{1}[A-Za-zЁёА-я0-9.,:;?!&%)(\"\'\\-\\s]*[A-Za-zЁёА-я0-9.?!%\"\']{1}$".r) &&
       (value.length <= MaxPhraseLength)
 
   /**

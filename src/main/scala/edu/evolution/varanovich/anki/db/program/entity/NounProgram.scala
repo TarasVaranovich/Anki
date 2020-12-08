@@ -1,6 +1,6 @@
 package edu.evolution.varanovich.anki.db.program.entity
 
-import doobie.{ConnectionIO, Fragment}
+import doobie.{ConnectionIO, Fragment, Update}
 import edu.evolution.varanovich.anki.adt.PartOfSpeech.Noun
 import edu.evolution.varanovich.anki.utility.VocabularyConfig.{MaxEngWordLength, MaxRusWordLength}
 
@@ -30,6 +30,17 @@ object NounProgram {
     Fragment.const(query).update.run
   }
 
+  val createNounListSafely: (List[Noun]) => ConnectionIO[Int] = (nouns: List[Noun]) => {
+    val query: String =
+      s"""INSERT INTO noun(
+         |value,
+         |translation,
+         |transcription,
+         |plural) VALUES (?,?,?,?)
+         |ON CONFLICT DO NOTHING;""".stripMargin
+    Update[Noun](query).updateMany(nouns)
+  }
+
   val readNoun: String => ConnectionIO[Option[Noun]] = (value: String) => {
     val query: String =
       s"""SELECT
@@ -39,6 +50,17 @@ object NounProgram {
          |plural
          |FROM noun WHERE value = '$value'""".stripMargin
     Fragment.const(query).query[Noun].option
+  }
+
+  val readAllNouns: ConnectionIO[List[Noun]] = {
+    val query: String =
+      s"""SELECT
+         |value,
+         |translation,
+         |transcription,
+         |plural
+         |FROM noun""".stripMargin
+    Fragment.const(query).query[Noun].to[List]
   }
 
   val updateNoun: Noun => ConnectionIO[Int] = (noun: Noun) => {

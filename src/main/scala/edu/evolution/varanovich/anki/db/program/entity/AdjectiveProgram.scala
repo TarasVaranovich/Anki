@@ -1,6 +1,6 @@
 package edu.evolution.varanovich.anki.db.program.entity
 
-import doobie.{ConnectionIO, Fragment}
+import doobie.{ConnectionIO, Fragment, Update}
 import edu.evolution.varanovich.anki.adt.PartOfSpeech.Adjective
 import edu.evolution.varanovich.anki.utility.VocabularyConfig.{MaxEngWordLength, MaxRusWordLength}
 
@@ -33,6 +33,18 @@ object AdjectiveProgram {
     Fragment.const(query).update.run
   }
 
+  val createAdjectiveListSafely: (List[Adjective]) => ConnectionIO[Int] = (adjectives: List[Adjective]) => {
+    val query: String =
+      s"""INSERT INTO adjective(
+         |value,
+         |translation,
+         |transcription,
+         |comparative,
+         |superlative) VALUES (?,?,?,?,?)
+         |ON CONFLICT DO NOTHING;""".stripMargin
+    Update[Adjective](query).updateMany(adjectives)
+  }
+
   val readAdjective: String => ConnectionIO[Option[Adjective]] = (value: String) => {
     val query: String =
       s"""SELECT
@@ -43,6 +55,18 @@ object AdjectiveProgram {
          |superlative
          |FROM adjective WHERE value = '$value'""".stripMargin
     Fragment.const(query).query[Adjective].option
+  }
+
+  val readAllAdjectives: ConnectionIO[List[Adjective]] = {
+    val query: String =
+      s"""SELECT
+         |value,
+         |translation,
+         |transcription,
+         |comparative,
+         |superlative
+         |FROM adjective""".stripMargin
+    Fragment.const(query).query[Adjective].to[List]
   }
 
   val updateAdjective: Adjective => ConnectionIO[Int] = (adjective: Adjective) => {

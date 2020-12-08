@@ -26,8 +26,9 @@ package object anki {
     Noun.from("glasses", "очки", "[ɡlɑ:siz]", "     ")
 
   //PHRASES
-  val phraseOpt: Option[Phrase] = Phrase.from("How are you?", "Как дела?")
-  val phraseModifiedOpt: Option[Phrase] = Phrase.from("How are you?", "Как дела?, Здравствуйте!")
+  val howAreYouPhraseOpt: Option[Phrase] = Phrase.from("How are you?", "Как дела?")
+  val howAreYouPhraseModifiedOpt: Option[Phrase] = Phrase.from("How are you?", "Как дела?, Здравствуйте!")
+  val windowOpt: Option[Phrase] = Phrase.from("window of vulnerability", "окно уязвимости")
 
   //PREPOSITIONS
   val abovePrepositionOpt: Option[Preposition] =
@@ -43,7 +44,10 @@ package object anki {
       "consists", "consisted", "consisting")
   val consistVerbModifiedOpt: Option[Verb] =
     Verb.from("consist", "состоять, заключаться в", "[kənˈsɪst]",
-      "consists", "consisted", "consisting")
+      "consists", "consisting", "consisted")
+  val discoverVerbOpt: Option[Verb] =
+    Verb.from("discover", "обнаруживать", "[dɪsˈkʌvə]",
+      "discovers", "discovering", "discovered")
 
   //USERS
   val userOpt: Option[User] =
@@ -55,7 +59,7 @@ package object anki {
   val deckOpt: Option[Deck] = for {
     adjective <- bigAdjectiveOpt
     noun <- coastNounOpt
-    phrase <- phraseOpt
+    phrase <- howAreYouPhraseOpt
     preposition <- abovePrepositionOpt
     verb <- consistVerbOpt
     deckOpt <- Deck.from(Set(Card.valueOf(adjective), Card.valueOf(noun), Card.valueOf(phrase),

@@ -13,7 +13,7 @@ class PartOfSpeechSpec extends AnyFlatSpec {
   }
 
   it should "create Phrase successfully" in {
-    assert(phraseOpt.isDefined)
+    assert(howAreYouPhraseOpt.isDefined)
   }
 
   it should "create Preposition successfully" in {
@@ -39,7 +39,7 @@ class PartOfSpeechSpec extends AnyFlatSpec {
   }
 
   it should "sort parts of speech by value" in {
-    val words = List(highAdjectiveOpt, coastNounOpt, phraseOpt, abovePrepositionOpt, consistVerbOpt,
+    val words = List(highAdjectiveOpt, coastNounOpt, howAreYouPhraseOpt, abovePrepositionOpt, consistVerbOpt,
       clumsyAdjectiveOpt, bigAdjectiveOpt)
     val values: List[PartOfSpeech] = for {
       word <- words

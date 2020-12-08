@@ -59,6 +59,18 @@ class WordValidatorSpec extends AnyFreeSpec {
       assert(validTranslation("сёгун"))
     }
 
+    "is valid in case of ellipsis" in {
+      assert(validTranslation("или... или..."))
+    }
+
+    "is valid in case of one letter" in {
+      assert(validTranslation("к"))
+    }
+
+    "is valid in case of brackets" in {
+      assert(validTranslation("под водой (с маской или трубкой"))
+    }
+
     "is valid with hyphen" in {
       assert(validTranslation("полу-автомат"))
     }

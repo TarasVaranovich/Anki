@@ -1,6 +1,6 @@
 package edu.evolution.varanovich.anki.db.program.entity
 
-import doobie.{ConnectionIO, Fragment}
+import doobie.{ConnectionIO, Fragment, Update}
 import edu.evolution.varanovich.anki.adt.PartOfSpeech.Verb
 import edu.evolution.varanovich.anki.utility.VocabularyConfig.{MaxEngWordLength, MaxRusWordLength}
 
@@ -36,6 +36,19 @@ object VerbProgram {
     Fragment.const(query).update.run
   }
 
+  val createVerbListSafely: (List[Verb]) => ConnectionIO[Int] = (verbs: List[Verb]) => {
+    val query: String =
+      s"""INSERT INTO verb(
+         |value,
+         |translation,
+         |transcription,
+         |third_person,
+         |present_participle,
+         |past_participle) VALUES (?,?,?,?,?,?)
+         |ON CONFLICT DO NOTHING;""".stripMargin
+    Update[Verb](query).updateMany(verbs)
+  }
+
   val readVerb: String => ConnectionIO[Option[Verb]] = (value: String) => {
     val query: String =
       s"""SELECT
@@ -47,6 +60,19 @@ object VerbProgram {
          |past_participle
          |FROM verb WHERE value = '$value'""".stripMargin
     Fragment.const(query).query[Verb].option
+  }
+
+  val readAllVerbs: ConnectionIO[List[Verb]] = {
+    val query: String =
+      s"""SELECT
+         |value,
+         |translation,
+         |transcription,
+         |third_person,
+         |present_participle,
+         |past_participle
+         |FROM verb""".stripMargin
+    Fragment.const(query).query[Verb].to[List]
   }
 
   val updateVerb: Verb => ConnectionIO[Int] = (verb: Verb) => {

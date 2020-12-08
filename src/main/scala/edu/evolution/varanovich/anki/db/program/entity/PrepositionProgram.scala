@@ -1,6 +1,6 @@
 package edu.evolution.varanovich.anki.db.program.entity
 
-import doobie.{ConnectionIO, Fragment}
+import doobie.{ConnectionIO, Fragment, Update}
 import edu.evolution.varanovich.anki.adt.PartOfSpeech.Preposition
 import edu.evolution.varanovich.anki.utility.VocabularyConfig.{MaxEngWordLength, MaxRusWordLength}
 
@@ -27,6 +27,14 @@ object PrepositionProgram {
     Fragment.const(query).update.run
   }
 
+  val createPrepositionListSafely: (List[Preposition]) => ConnectionIO[Int] = (prepositions: List[Preposition]) => {
+    val query: String =
+      s"""INSERT INTO
+         |preposition( value, translation, transcription)
+         |VALUES (?,?,?) ON CONFLICT DO NOTHING;""".stripMargin
+    Update[Preposition](query).updateMany(prepositions)
+  }
+
   val readPreposition: String => ConnectionIO[Option[Preposition]] = (value: String) => {
     val query: String =
       s"""SELECT
@@ -35,6 +43,11 @@ object PrepositionProgram {
          |transcription
          |FROM preposition WHERE value = '$value'""".stripMargin
     Fragment.const(query).query[Preposition].option
+  }
+
+  val readAllPrepositions: ConnectionIO[List[Preposition]] = {
+    val query: String = s"SELECT value, translation, transcription FROM preposition"
+    Fragment.const(query).query[Preposition].to[List]
   }
 
   val updatePreposition: Preposition => ConnectionIO[Int] = (preposition: Preposition) => {
