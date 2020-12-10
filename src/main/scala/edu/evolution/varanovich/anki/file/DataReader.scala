@@ -11,7 +11,7 @@ object DataReader {
   def readFromFile[A](fileName: String, parser: List[String] => Option[A]): IO[Seq[A]] = {
     val alias = fileName.split("/").last.split("-").head
     val fileAlias = FileAliases.valueOf(alias)
-    Try(io.Source.fromResource(fileName)) match {
+    Try(scala.io.Source.fromResource(fileName)) match {
       case Success(source) => Resource
         .fromAutoCloseable(IO(source))
         .use(source => IO(source.getLines().flatMap(str => parser(extractParts(str, fileAlias))).toSeq))

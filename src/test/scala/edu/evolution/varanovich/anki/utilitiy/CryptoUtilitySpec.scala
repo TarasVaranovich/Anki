@@ -1,6 +1,6 @@
 package edu.evolution.varanovich.anki.utilitiy
 
-import edu.evolution.varanovich.anki.utility.CryptoUtility.encryptSHA256
+import edu.evolution.varanovich.anki.utility.CryptoUtility.{encryptSHA256, generateToken}
 import org.scalatest.freespec.AnyFreeSpec
 
 class CryptoUtilitySpec extends AnyFreeSpec {
@@ -9,5 +9,9 @@ class CryptoUtilitySpec extends AnyFreeSpec {
     val passwordEncrypted: String = encryptSHA256(password)
     val passwordEncryptedSecond: String = encryptSHA256(password)
     assert(passwordEncrypted == passwordEncryptedSecond)
+  }
+
+  "should successfully generate token" in {
+    assert(generateToken.nonEmpty)
   }
 }

@@ -4,5 +4,5 @@ object DbConfig {
   val dbDriver = "org.postgresql.Driver"
   val dbUrl = "jdbc:postgresql:anki"
   val dbUser = "postgres"
-  val dbPswd = "pg"
+  val dbPassword = "pg"
 }

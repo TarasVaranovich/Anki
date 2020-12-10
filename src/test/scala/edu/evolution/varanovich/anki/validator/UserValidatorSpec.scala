@@ -6,7 +6,7 @@ import org.scalatest.freespec.AnyFreeSpec
 
 class UserValidatorSpec extends AnyFreeSpec {
   "successfully creates user " in {
-    val result: AllErrorsOr[User] = UserValidator.validate("user-user", "(pa-.,:;?!)", "member")
+    val result: AllErrorsOr[User] = UserValidator.validate("new-user", "(pa-.,:;?!)", "member")
     assert(result.isValid)
   }
 
