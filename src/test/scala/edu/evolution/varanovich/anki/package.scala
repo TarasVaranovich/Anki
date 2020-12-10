@@ -65,4 +65,12 @@ package object anki {
     deckOpt <- Deck.from(Set(Card.valueOf(adjective), Card.valueOf(noun), Card.valueOf(phrase),
       Card.valueOf(preposition), Card.valueOf(verb)), "deck opt example")
   } yield deckOpt
+
+  val cardListOpt: Option[List[Card]] = for {
+    adjective <- bigAdjectiveOpt
+    noun <- coastNounOpt
+    phrase <- howAreYouPhraseOpt
+    preposition <- abovePrepositionOpt
+    verb <- consistVerbOpt
+  } yield List(adjective, noun, phrase, preposition, verb).map(Card.valueOf)
 }
