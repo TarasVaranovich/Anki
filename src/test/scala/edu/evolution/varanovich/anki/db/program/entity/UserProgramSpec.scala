@@ -38,4 +38,22 @@ class UserProgramSpec extends AsyncFreeSpec with AsyncIOSpec with Matchers {
       assert(dropTypeResult == 0)
     }
   }
+
+  "should successfully lock/unlock user" in {
+    for {
+      user <- IO.fromOption(userOpt)(throw new Exception("User not created."))
+      _ <- DbManager.transactorBlock(createUserTable *> createUser(user))
+      idOpt <- DbManager.transactor.use(readUserId(user.name).transact[IO])
+      id <- IO.fromOption(idOpt)(throw new Exception("Id not found."))
+      _ <- DbManager.transactor.use(lockUser(id).transact[IO])
+      locked <- DbManager.transactor.use(isLockedUser(user).transact[IO])
+      _ <- DbManager.transactor.use(unlockUser(id).transact[IO])
+      unlocked <- DbManager.transactor.use(isLockedUser(user).transact[IO])
+      _ <- DbManager.transactor.use(dropTable("anki_user").transact[IO])
+      _ <- DbManager.transactor.use(dropType("privileges_enum").transact[IO])
+    } yield {
+      assert(locked)
+      assert(!unlocked)
+    }
+  }
 }

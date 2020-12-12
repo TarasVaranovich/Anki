@@ -15,6 +15,7 @@ object UserProgram {
          |CREATE TABLE anki_user(
          |id UUID PRIMARY KEY,
          |id_sequential SERIAL UNIQUE,
+         |locked BOOLEAN DEFAULT FALSE,
          |name VARCHAR($MaxUserNameLength) UNIQUE NOT NULL,
          |password VARCHAR($MaxPasswordEncryptedLength) NOT NULL,
          |privileges privileges_enum NOT NULL);""".stripMargin
@@ -35,24 +36,47 @@ object UserProgram {
     Fragment.const(query).update.run
   }
 
-  val readUser: String => ConnectionIO[Option[User]] = (value: String) => {
+  val readUser: String => ConnectionIO[Option[User]] = (name: String) => {
     val query: String =
       s"""SELECT
          |name,
          |password,
          |privileges
-         |FROM anki_user WHERE name = '$value'""".stripMargin
+         |FROM anki_user WHERE name = '$name'""".stripMargin
     Fragment.const(query).query[User].option
   }
 
-  val readPassword: String => ConnectionIO[Option[String]] = (value: String) => {
-    val query: String = s"SELECT password FROM anki_user WHERE name = '$value'"
+  val readPassword: String => ConnectionIO[Option[String]] = (name: String) => {
+    val query: String = s"SELECT password FROM anki_user WHERE name = '$name'"
     Fragment.const(query).query[String].option
   }
 
-  val readSequentialId: String => ConnectionIO[Option[Int]] = (value: String) => {
-    val query: String = s"SELECT id_sequential FROM anki_user WHERE name = '$value'".stripMargin
+  val readSequentialId: String => ConnectionIO[Option[Int]] = (name: String) => {
+    val query: String = s"SELECT id_sequential FROM anki_user WHERE name = '$name'".stripMargin
     Fragment.const(query).query[Int].option
+  }
+
+  val readUserId: String => ConnectionIO[Option[String]] = (name: String) => {
+    val query: String = s"SELECT id FROM anki_user WHERE name = '$name'".stripMargin
+    Fragment.const(query).query[String].option
+  }
+
+  val isLockedUser: User => ConnectionIO[Boolean] = (user: User) => {
+    val query: String = s"SELECT locked FROM anki_user WHERE name = '${user.name}'".stripMargin
+    Fragment.const(query).query[Boolean].option.map {
+      case Some(locked) => locked
+      case None => false
+    }
+  }
+
+  val lockUser: String => ConnectionIO[Int] = (id: String) => {
+    val query: String = s"UPDATE anki_user SET locked = TRUE WHERE id = '$id'"
+    Fragment.const(query).update.run
+  }
+
+  val unlockUser: String => ConnectionIO[Int] = (id: String) => {
+    val query: String = s"UPDATE anki_user SET locked = FALSE WHERE id = '$id'"
+    Fragment.const(query).update.run
   }
 
   val updateUser: User => ConnectionIO[Int] = (user: User) => {

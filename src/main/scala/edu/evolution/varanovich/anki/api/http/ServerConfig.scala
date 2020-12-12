@@ -6,4 +6,5 @@ object ServerConfig {
   val cacheExpiration: Int = 15
   val cacheInvalidation: Int = 5
   val tokenSize: Int = 24
+  val loginAttempts: Int = 3
 }
