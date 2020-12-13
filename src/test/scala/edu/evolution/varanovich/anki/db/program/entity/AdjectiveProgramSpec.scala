@@ -7,7 +7,7 @@ import doobie.implicits._
 import edu.evolution.varanovich.anki._
 import edu.evolution.varanovich.anki.db.DbManager
 import edu.evolution.varanovich.anki.db.program.entity.AdjectiveProgram._
-import edu.evolution.varanovich.anki.db.program.entity.ServiceProgram._
+import edu.evolution.varanovich.anki.db.program.domain.ServiceProgram._
 import org.scalatest.freespec.AsyncFreeSpec
 import org.scalatest.matchers.should.Matchers
 
@@ -43,6 +43,18 @@ class AdjectiveProgramSpec extends AsyncFreeSpec with AsyncIOSpec with Matchers 
       assert(createResult == 3)
       assert(listResult == list)
       assert(dropTableResult == 0)
+    }
+  }
+
+  "should successfully read by identifier" in {
+    for {
+      list <- IO(List(bigAdjectiveOpt, clumsyAdjectiveOpt, highAdjectiveOpt).sequence.getOrElse(List()))
+      _ <- DbManager.transactorBlock(createAdjectiveTable *> createAdjectiveListSafely(list))
+      adjectiveOpt <- DbManager.transactor.use(readAdjectiveById(2).transact[IO])
+      adjective <- IO.fromOption(adjectiveOpt)(throw new Exception("Adjective not found."))
+      _ <- DbManager.transactor.use(dropTable("adjective").transact[IO])
+    } yield {
+      assert(adjective.value == "clumsy")
     }
   }
 }

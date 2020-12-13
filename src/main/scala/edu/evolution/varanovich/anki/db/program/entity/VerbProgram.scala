@@ -62,6 +62,19 @@ object VerbProgram {
     Fragment.const(query).query[Verb].option
   }
 
+  val readVerbById: Int => ConnectionIO[Option[Verb]] = (id: Int) => {
+    val query: String =
+      s"""SELECT
+         |value,
+         |translation,
+         |transcription,
+         |third_person,
+         |present_participle,
+         |past_participle
+         |FROM verb WHERE id = $id""".stripMargin
+    Fragment.const(query).query[Verb].option
+  }
+
   val readAllVerbs: ConnectionIO[List[Verb]] = {
     val query: String =
       s"""SELECT

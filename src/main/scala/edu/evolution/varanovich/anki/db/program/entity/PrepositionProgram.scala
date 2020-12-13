@@ -45,6 +45,16 @@ object PrepositionProgram {
     Fragment.const(query).query[Preposition].option
   }
 
+  val readPrepositionById: Int => ConnectionIO[Option[Preposition]] = (id: Int) => {
+    val query: String =
+      s"""SELECT
+         |value,
+         |translation,
+         |transcription
+         |FROM preposition WHERE id = $id""".stripMargin
+    Fragment.const(query).query[Preposition].option
+  }
+
   val readAllPrepositions: ConnectionIO[List[Preposition]] = {
     val query: String = s"SELECT value, translation, transcription FROM preposition"
     Fragment.const(query).query[Preposition].to[List]

@@ -6,8 +6,9 @@ import cats.implicits._
 import doobie.implicits._
 import edu.evolution.varanovich.anki._
 import edu.evolution.varanovich.anki.db.DbManager
+import edu.evolution.varanovich.anki.db.program.entity.AdjectiveProgram.{createAdjectiveListSafely, createAdjectiveTable, readAdjectiveById}
 import edu.evolution.varanovich.anki.db.program.entity.NounProgram._
-import edu.evolution.varanovich.anki.db.program.entity.ServiceProgram._
+import edu.evolution.varanovich.anki.db.program.domain.ServiceProgram._
 import org.scalatest.freespec.AsyncFreeSpec
 import org.scalatest.matchers.should.Matchers
 
@@ -43,6 +44,18 @@ class NounProgramSpec extends AsyncFreeSpec with AsyncIOSpec with Matchers {
       assert(createResult == 2)
       assert(listResult == list)
       assert(dropTableResult == 0)
+    }
+  }
+
+  "should successfully read by identifier" in {
+    for {
+      list <- IO(List(coastNounOpt, glassesNounOpt).sequence.getOrElse(List()))
+      _ <- DbManager.transactorBlock(createNounTable *> createNounListSafely(list))
+      nounOpt <- DbManager.transactor.use(readNounById(2).transact[IO])
+      noun <- IO.fromOption(nounOpt)(throw new Exception("Noun not found."))
+      _ <- DbManager.transactor.use(dropTable("noun").transact[IO])
+    } yield {
+      assert(noun.value == "glasses")
     }
   }
 }

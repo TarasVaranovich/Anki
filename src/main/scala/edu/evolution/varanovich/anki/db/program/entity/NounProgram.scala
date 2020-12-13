@@ -52,6 +52,17 @@ object NounProgram {
     Fragment.const(query).query[Noun].option
   }
 
+  val readNounById: Int => ConnectionIO[Option[Noun]] = (id: Int) => {
+    val query: String =
+      s"""SELECT
+         |value,
+         |translation,
+         |transcription,
+         |plural
+         |FROM noun WHERE id = $id""".stripMargin
+    Fragment.const(query).query[Noun].option
+  }
+
   val readAllNouns: ConnectionIO[List[Noun]] = {
     val query: String =
       s"""SELECT

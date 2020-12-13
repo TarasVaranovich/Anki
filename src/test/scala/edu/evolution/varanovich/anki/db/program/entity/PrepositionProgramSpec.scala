@@ -7,7 +7,7 @@ import doobie.implicits._
 import edu.evolution.varanovich.anki._
 import edu.evolution.varanovich.anki.db.DbManager
 import edu.evolution.varanovich.anki.db.program.entity.PrepositionProgram._
-import edu.evolution.varanovich.anki.db.program.entity.ServiceProgram._
+import edu.evolution.varanovich.anki.db.program.domain.ServiceProgram._
 import org.scalatest.freespec.AsyncFreeSpec
 import org.scalatest.matchers.should.Matchers
 
@@ -43,6 +43,18 @@ class PrepositionProgramSpec extends AsyncFreeSpec with AsyncIOSpec with Matcher
       assert(createResult == 2)
       assert(listResult == list)
       assert(dropTableResult == 0)
+    }
+  }
+
+  "should successfully read by identifier" in {
+    for {
+      list <- IO(List(abovePrepositionOpt, betweenPrepositionOpt).sequence.getOrElse(List()))
+      _ <- DbManager.transactorBlock(createPrepositionTable *> createPrepositionListSafely(list))
+      phraseOpt <- DbManager.transactor.use(readPrepositionById(2).transact[IO])
+      phrase <- IO.fromOption(phraseOpt)(throw new Exception("Preposition not found."))
+      _ <- DbManager.transactor.use(dropTable("preposition").transact[IO])
+    } yield {
+      assert(phrase.value == "between")
     }
   }
 }

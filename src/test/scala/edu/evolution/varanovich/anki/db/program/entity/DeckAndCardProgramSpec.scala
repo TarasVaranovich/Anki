@@ -5,9 +5,9 @@ import cats.effect.testing.scalatest.AsyncIOSpec
 import cats.implicits._
 import doobie.implicits._
 import edu.evolution.varanovich.anki.db.DbManager
+import edu.evolution.varanovich.anki.db.program.domain.ServiceProgram._
 import edu.evolution.varanovich.anki.db.program.entity.CardProgram._
-import edu.evolution.varanovich.anki.db.program.entity.DeckProgram._
-import edu.evolution.varanovich.anki.db.program.entity.ServiceProgram._
+import edu.evolution.varanovich.anki.db.program.entity.DeckProgram.{createDeckTable, _}
 import edu.evolution.varanovich.anki.db.program.entity.UserProgram._
 import edu.evolution.varanovich.anki.{deckOpt, _}
 import org.scalatest.freespec.AsyncFreeSpec
@@ -22,7 +22,8 @@ class DeckAndCardProgramSpec extends AsyncFreeSpec with AsyncIOSpec with Matcher
       userIdOpt <- DbManager.transactor.use(readSequentialId(user.name).transact[IO])
       userId <- IO.fromOption(userIdOpt)(throw new Exception("User not found"))
       _ <- DbManager.transactorBlock(createDeckTable *> createDeck(deck, userId))
-      deckIdOpt <- DbManager.transactor.use(readDeckId(deck.description).transact[IO])
+      deckIdOpt <- DbManager.transactor
+        .use(readDeckIdByDescriptionAndUserName(deck.description, user.name).transact[IO])
       deckId <- IO.fromOption(deckIdOpt)(throw new Exception("Deck not found"))
       _ <- DbManager.transactorBlock(createCardTable *> createCardList(deck.cards.toList, deckId))
       cardListResult <- DbManager.transactor.use(readCardList(deckId).transact[IO])

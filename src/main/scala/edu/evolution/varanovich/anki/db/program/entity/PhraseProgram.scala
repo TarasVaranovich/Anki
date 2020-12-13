@@ -38,6 +38,15 @@ object PhraseProgram {
     Fragment.const(query).query[Phrase].option
   }
 
+  val readPhraseById: Int => ConnectionIO[Option[Phrase]] = (id: Int) => {
+    val query: String =
+      s"""SELECT
+         |value,
+         |translation
+         |FROM phrase WHERE id = $id""".stripMargin
+    Fragment.const(query).query[Phrase].option
+  }
+
   val readAllPhrases: ConnectionIO[List[Phrase]] = {
     val query: String = s"SELECT value, translation FROM phrase"
     Fragment.const(query).query[Phrase].to[List]

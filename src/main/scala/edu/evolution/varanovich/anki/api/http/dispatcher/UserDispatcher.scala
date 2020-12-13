@@ -32,7 +32,7 @@ object UserDispatcher {
         idOpt <- if (saveResult == OperationSuccess) DbManager.transactor.use(readUserId(user.name).transact[IO])
         else IO(None)
         registerResult <- idOpt match {
-          case Some(id) => cache.put(id, UserSession(token, user.privileges)) *> IO(OperationSuccess)
+          case Some(id) => cache.put(id, UserSession(token, user.privileges, user.name)) *> IO(OperationSuccess)
           case None => IO(saveResult)
         }
       } yield (registerResult, token, idOpt) match {
@@ -66,16 +66,16 @@ object UserDispatcher {
         loginResult <- (passwordOpt, idOpt, isLocked) match {
           case (Some(password), Some(id), false) =>
             if (password == encryptSHA256(user.password))
-              cache.put(id, UserSession(token, user.privileges)) *> IO(OperationSuccess)
+              cache.put(id, UserSession(token, user.privileges, user.name)) *> IO(OperationSuccess)
             else attemptsOpt match {
               case Some(attempts) => {
                 if (attempts > 0)
-                  cache.put(id, UserSession("", user.privileges, (attempts - 1))) *> IO(WrongPassword)
+                  cache.put(id, UserSession("", user.privileges, user.name, (attempts - 1))) *> IO(WrongPassword)
                 else
                   DbManager.transactor.use(lockUser(id).transact[IO])
                     .redeem((_: Throwable) => IO(ServerError), (_: Int) => WrongPassword)
               }
-              case None => cache.put(id, UserSession("", user.privileges)) *> IO(WrongPassword)
+              case None => cache.put(id, UserSession("", user.privileges, "")) *> IO(WrongPassword)
             }
           case (_, None, false) => IO(NotExists)
           case (_, _, true) => IO(Blocked)
@@ -97,11 +97,11 @@ object UserDispatcher {
       body =>
         decode[UserRequest](body) match {
           case Left(_) =>
-            IO(Response(Status.BadRequest).withEntity(ErrorResponse("Cannot parse user from request body.")))
+            IO(Response(Status.UnprocessableEntity).withEntity(ErrorResponse("Cannot parse user from request body.")))
           case Right(userData) =>
             UserValidator.validate(userData.name, userData.password, "member").toEither match {
               case Left(errors) =>
-                IO(Response(Status.UnprocessableEntity)
+                IO(Response(Status.NotAcceptable)
                   .withEntity(MultiErrorResponse(errors.map(_.message).toNonEmptyList.toList.toArray)))
               case Right(user) => function(user)
             }

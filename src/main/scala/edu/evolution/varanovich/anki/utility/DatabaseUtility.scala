@@ -10,7 +10,7 @@ import edu.evolution.varanovich.anki.db.program.entity.DeckProgram.createDeckTab
 import edu.evolution.varanovich.anki.db.program.entity.NounProgram._
 import edu.evolution.varanovich.anki.db.program.entity.PhraseProgram.{createPhraseListSafely, createPhraseTable}
 import edu.evolution.varanovich.anki.db.program.entity.PrepositionProgram.{createPrepositionListSafely, createPrepositionTable}
-import edu.evolution.varanovich.anki.db.program.entity.ServiceProgram.{dropTable, dropType}
+import edu.evolution.varanovich.anki.db.program.domain.ServiceProgram.{dropTable, dropType}
 import edu.evolution.varanovich.anki.db.program.entity.UserProgram.createUserTable
 import edu.evolution.varanovich.anki.db.program.entity.VerbProgram.{createVerbListSafely, createVerbTable}
 import edu.evolution.varanovich.anki.file.{DataParser, DataReader, FileAliases}

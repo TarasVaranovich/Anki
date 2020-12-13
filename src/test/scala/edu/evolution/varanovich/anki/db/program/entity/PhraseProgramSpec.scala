@@ -6,8 +6,9 @@ import cats.implicits._
 import doobie.implicits._
 import edu.evolution.varanovich.anki._
 import edu.evolution.varanovich.anki.db.DbManager
+import edu.evolution.varanovich.anki.db.program.entity.NounProgram.{createNounListSafely, createNounTable, readNounById}
 import edu.evolution.varanovich.anki.db.program.entity.PhraseProgram._
-import edu.evolution.varanovich.anki.db.program.entity.ServiceProgram._
+import edu.evolution.varanovich.anki.db.program.domain.ServiceProgram._
 import org.scalatest.freespec.AsyncFreeSpec
 import org.scalatest.matchers.should.Matchers
 
@@ -43,6 +44,18 @@ class PhraseProgramSpec extends AsyncFreeSpec with AsyncIOSpec with Matchers {
       assert(createResult == 2)
       assert(listResult == list)
       assert(dropTableResult == 0)
+    }
+  }
+
+  "should successfully read by identifier" in {
+    for {
+      list <- IO(List(howAreYouPhraseOpt, windowOpt).sequence.getOrElse(List()))
+      _ <- DbManager.transactorBlock(createPhraseTable *> createPhraseListSafely(list))
+      phraseOpt <- DbManager.transactor.use(readPhraseById(2).transact[IO])
+      phrase <- IO.fromOption(phraseOpt)(throw new Exception("Phrase not found."))
+      _ <- DbManager.transactor.use(dropTable("phrase").transact[IO])
+    } yield {
+      assert(phrase.value == "window of vulnerability")
     }
   }
 }

@@ -57,6 +57,18 @@ object AdjectiveProgram {
     Fragment.const(query).query[Adjective].option
   }
 
+  val readAdjectiveById: Int => ConnectionIO[Option[Adjective]] = (id: Int) => {
+    val query: String =
+      s"""SELECT
+         |value,
+         |translation,
+         |transcription,
+         |comparative,
+         |superlative
+         |FROM adjective WHERE id = $id""".stripMargin
+    Fragment.const(query).query[Adjective].option
+  }
+
   val readAllAdjectives: ConnectionIO[List[Adjective]] = {
     val query: String =
       s"""SELECT

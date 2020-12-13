@@ -6,7 +6,7 @@ import cats.implicits._
 import doobie.implicits._
 import edu.evolution.varanovich.anki._
 import edu.evolution.varanovich.anki.db.DbManager
-import edu.evolution.varanovich.anki.db.program.entity.ServiceProgram._
+import edu.evolution.varanovich.anki.db.program.domain.ServiceProgram._
 import edu.evolution.varanovich.anki.db.program.entity.UserProgram._
 import edu.evolution.varanovich.anki.utility.CryptoUtility.encryptSHA256
 import org.scalatest.freespec.AsyncFreeSpec

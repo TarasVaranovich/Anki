@@ -2,11 +2,11 @@ package edu.evolution.varanovich.anki.api.http
 
 import cats.effect.{ExitCode, IO, IOApp}
 import edu.evolution.varanovich.anki.api.http.ServerConfig._
-import edu.evolution.varanovich.anki.api.http.dispatcher.UserDispatcher
+import edu.evolution.varanovich.anki.api.http.dispatcher.{DeckDispatcher, UserDispatcher}
 import edu.evolution.varanovich.anki.api.session.Session.Cache
 import edu.evolution.varanovich.anki.api.session.UserSession
 import org.http4s.HttpRoutes
-import org.http4s.dsl.io.{->, /, POST, Root}
+import org.http4s.dsl.io.{->, /, GET, POST, Root}
 import org.http4s.implicits.http4sKleisliResponseSyntaxOptionT
 import org.http4s.server.blaze.BlazeServerBuilder
 
@@ -21,6 +21,10 @@ object AnkiServer extends IOApp {
     HttpRoutes.of[IO] {
       case request@POST -> Root / "register" => UserDispatcher.doRegister(request, cache)
       case request@POST -> Root / "login" => UserDispatcher.doLogin(request, cache)
+      case request@GET -> Root / "deck" / size => DeckDispatcher.doRandom(size, request, cache)
+      //get last deck
+      //create custom deck
+      //get custom deck by like
     }
   }
 

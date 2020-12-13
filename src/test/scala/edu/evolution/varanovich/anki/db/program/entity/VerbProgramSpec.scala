@@ -6,7 +6,7 @@ import cats.implicits._
 import doobie.implicits._
 import edu.evolution.varanovich.anki._
 import edu.evolution.varanovich.anki.db.DbManager
-import edu.evolution.varanovich.anki.db.program.entity.ServiceProgram._
+import edu.evolution.varanovich.anki.db.program.domain.ServiceProgram._
 import edu.evolution.varanovich.anki.db.program.entity.VerbProgram._
 import org.scalatest.freespec.AsyncFreeSpec
 import org.scalatest.matchers.should.Matchers
@@ -43,6 +43,18 @@ class VerbProgramSpec extends AsyncFreeSpec with AsyncIOSpec with Matchers {
       assert(createResult == 2)
       assert(listResult == list)
       assert(dropTableResult == 0)
+    }
+  }
+
+  "should successfully read by identifier" in {
+    for {
+      list <- IO(List(consistVerbOpt, discoverVerbOpt).sequence.getOrElse(List()))
+      _ <- DbManager.transactorBlock(createVerbTable *> createVerbListSafely(list))
+      phraseOpt <- DbManager.transactor.use(readVerbById(2).transact[IO])
+      phrase <- IO.fromOption(phraseOpt)(throw new Exception("Verb not found."))
+      _ <- DbManager.transactor.use(dropTable("verb").transact[IO])
+    } yield {
+      assert(phrase.value == "discover")
     }
   }
 }
