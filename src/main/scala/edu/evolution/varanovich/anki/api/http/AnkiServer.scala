@@ -22,7 +22,7 @@ object AnkiServer extends IOApp {
       case request@POST -> Root / "register" => UserDispatcher.doRegister(request, cache)
       case request@POST -> Root / "login" => UserDispatcher.doLogin(request, cache)
       case request@GET -> Root / "deck" / size => DeckDispatcher.doRandom(size, request, cache)
-      //get last deck
+      case request@GET -> Root / "last-deck" => DeckDispatcher.doLastGenerated(request, cache)
       //create custom deck
       //get custom deck by like
     }

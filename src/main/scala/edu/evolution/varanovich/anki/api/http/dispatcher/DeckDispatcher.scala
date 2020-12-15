@@ -9,8 +9,8 @@ import edu.evolution.varanovich.anki.api.http.AnkiServer.ErrorResponse
 import edu.evolution.varanovich.anki.api.session.Session.Cache
 import edu.evolution.varanovich.anki.api.session.UserSession
 import edu.evolution.varanovich.anki.db.DbManager
-import edu.evolution.varanovich.anki.db.program.entity.CardProgram.createCardList
-import edu.evolution.varanovich.anki.db.program.entity.DeckProgram.{createDeck, readDeckIdByDescriptionAndUserName}
+import edu.evolution.varanovich.anki.db.program.entity.CardProgram.{createCardList, readCardList}
+import edu.evolution.varanovich.anki.db.program.entity.DeckProgram.{createDeck, readDeckIdByDescriptionAndUserName, readLastGeneratedDeckInfoByUserName}
 import edu.evolution.varanovich.anki.db.program.entity.UserProgram.readSequentialId
 import edu.evolution.varanovich.anki.domain.DeckBuilder
 import edu.evolution.varanovich.anki.utility.AnkiConfig.{MaxDeckLength, MinDeckLength}
@@ -25,7 +25,7 @@ import scala.util.{Failure, Success, Try}
 object DeckDispatcher {
   private val unauthorizedResponse: Response[IO] =
     Response(Status.Unauthorized).withEntity(ErrorResponse(s"You are not logged in."))
-  private final case class RandomDeckResponse(deck: Deck)
+  private final case class DeckResponse(deck: Deck)
   def doRandom(size: String,
                request: Request[IO], cache: Cache[IO, String, UserSession])(implicit contextShift: ContextShift[IO]):
   IO[Response[IO]] = {
@@ -54,7 +54,7 @@ object DeckDispatcher {
           }
         } yield (deckOpt, saveResult) match {
           case (_, ServerError) => Response(Status.InternalServerError).withEntity(ErrorResponse(s"Cannot save deck."))
-          case (Some(deck), _) => Response(Status.Created).withEntity(RandomDeckResponse(deck))
+          case (Some(deck), _) => Response(Status.Created).withEntity(DeckResponse(deck))
           case (None, _) => Response(Status.InternalServerError).withEntity(ErrorResponse(s"Cannot generate deck."))
         }
       Try(size.toInt) match {
@@ -67,6 +67,30 @@ object DeckDispatcher {
       }
 
     } else IO(Response(Status.UnprocessableEntity).withEntity(ErrorResponse(s"Cannot parse deck size.")))
+  }
+
+  def doLastGenerated(request: Request[IO],
+                      cache: Cache[IO, String, UserSession])(implicit contextShift: ContextShift[IO]):
+  IO[Response[IO]] = {
+    val lastGeneratedDeck: String => IO[Response[IO]] = (userId: String) =>
+      for {
+        nameOpt <- cache.get(userId).map(_.map(_.userName))
+        deckInfoOpt <- nameOpt match {
+          case Some(name) => DbManager.transactor.use(readLastGeneratedDeckInfoByUserName(name).transact[IO])
+            .handleErrorWith((_: Throwable) => IO(None))
+          case None => IO(None)
+        }
+        cardList <- deckInfoOpt match {
+          case Some((id, _)) => DbManager.transactor.use(readCardList(id).transact[IO])
+            .handleErrorWith((_: Throwable) => IO(List()))
+          case None => IO(List())
+        }
+        description <- IO(deckInfoOpt.map { case (_, description) => description }.getOrElse(""))
+      } yield Deck.from(cardList.toSet, description) match {
+        case Some(deck) => Response(Status.Ok).withEntity(DeckResponse(deck))
+        case None => Response(Status.NotFound).withEntity(ErrorResponse(s"Deck not found."))
+      }
+    executeAuthenticated(request, cache, lastGeneratedDeck)
   }
 
   private def executeAuthenticated(request: Request[IO],

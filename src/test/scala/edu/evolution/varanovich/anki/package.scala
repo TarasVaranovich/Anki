@@ -1,7 +1,10 @@
 package edu.evolution.varanovich
 
+import java.time.LocalDateTime
+
 import edu.evolution.varanovich.anki.adt.PartOfSpeech._
 import edu.evolution.varanovich.anki.adt.{Card, Deck, Privileges, User}
+import edu.evolution.varanovich.anki.domain.DeckBuilder.GeneratedDeckName
 
 package object anki {
   //ADJECTIVES
@@ -52,18 +55,62 @@ package object anki {
   //USERS
   val userOpt: Option[User] =
     User.from("Donald Trump", "123456", Privileges.Admin)
+  val userOptSecond: Option[User] =
+    User.from("Joseph Biden", "654321", Privileges.Admin)
   val userModifiedOpt: Option[User] =
     User.from("Donald Trump", "789000", Privileges.Member)
 
   //DECKS
-  val deckOpt: Option[Deck] = for {
-    adjective <- bigAdjectiveOpt
-    noun <- coastNounOpt
-    phrase <- howAreYouPhraseOpt
-    preposition <- abovePrepositionOpt
-    verb <- consistVerbOpt
-    deckOpt <- Deck.from(Set(Card.valueOf(adjective), Card.valueOf(noun), Card.valueOf(phrase),
-      Card.valueOf(preposition), Card.valueOf(verb)), "deck opt example")
+  val deckOpt: Option[Deck] =
+    for {
+      adjective <- bigAdjectiveOpt
+      noun <- coastNounOpt
+      phrase <- howAreYouPhraseOpt
+      preposition <- abovePrepositionOpt
+      verb <- consistVerbOpt
+      deckOpt <- Deck.from(Set(Card.valueOf(adjective), Card.valueOf(noun), Card.valueOf(phrase),
+        Card.valueOf(preposition), Card.valueOf(verb)), "deck opt example")
+    } yield deckOpt
+
+  val deckOptSecond: Option[Deck] =
+    for {
+      adjective <- clumsyAdjectiveOpt
+      noun <- glassesNounOpt
+      phrase <- windowOpt
+      preposition <- betweenPrepositionOpt
+      verb <- discoverVerbOpt
+      deckOpt <- Deck.from(Set(
+        Card.valueOf(adjective),
+        Card.valueOf(noun),
+        Card.valueOf(phrase),
+        Card.valueOf(preposition),
+        Card.valueOf(verb)
+      ), s"$GeneratedDeckName 202-second")
+    } yield deckOpt
+
+  val deckOptThird: Option[Deck] = for {
+    adjective <- clumsyAdjectiveOpt
+    noun <- glassesNounOpt
+    phrase <- windowOpt
+    preposition <- betweenPrepositionOpt
+    verb <- discoverVerbOpt
+    adjectiveTwo <- bigAdjectiveOpt
+    nounTwo <- coastNounOpt
+    phraseTwo <- howAreYouPhraseOpt
+    prepositionTwo <- abovePrepositionOpt
+    verbTwo <- consistVerbOpt
+    deckOpt <- Deck.from(Set(
+      Card.valueOf(adjective),
+      Card.valueOf(noun),
+      Card.valueOf(phrase),
+      Card.valueOf(preposition),
+      Card.valueOf(verb),
+      Card.valueOf(adjectiveTwo),
+      Card.valueOf(nounTwo),
+      Card.valueOf(phraseTwo),
+      Card.valueOf(prepositionTwo),
+      Card.valueOf(verbTwo)
+    ), s"$GeneratedDeckName 202-third")
   } yield deckOpt
 
   val cardListOpt: Option[List[Card]] = for {

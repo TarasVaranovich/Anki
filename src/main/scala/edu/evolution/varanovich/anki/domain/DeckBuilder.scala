@@ -19,6 +19,7 @@ import edu.evolution.varanovich.anki.utility.VocabularyConfig.AvailablePartsOfSp
 import scala.util.Random
 
 object DeckBuilder {
+  val GeneratedDeckName: String = "Automatically generated deck from"
   sealed trait Alias {
     def name: String
   }
@@ -71,7 +72,7 @@ object DeckBuilder {
       val verbCards = verbSet.map(Card.valueOf)
       val summary = adjectiveCards ++ nounCards ++ phraseCards ++ prepositionCards ++ verbCards
       val formatter: DateTimeFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")
-      Deck.from(summary, s"Automatically generated deck from ${LocalDateTime.now().format(formatter)}")
+      Deck.from(summary, s"$GeneratedDeckName ${LocalDateTime.now().format(formatter)}")
     }
   }
 

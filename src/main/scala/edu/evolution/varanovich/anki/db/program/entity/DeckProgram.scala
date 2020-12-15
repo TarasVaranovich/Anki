@@ -1,7 +1,8 @@
 package edu.evolution.varanovich.anki.db.program.entity
 
-import doobie.{ConnectionIO, Fragment, Update}
-import edu.evolution.varanovich.anki.adt.{Card, Deck}
+import doobie.{ConnectionIO, Fragment}
+import edu.evolution.varanovich.anki.adt.Deck
+import edu.evolution.varanovich.anki.domain.DeckBuilder.GeneratedDeckName
 import edu.evolution.varanovich.anki.utility.AnkiConfig.MaxDeckDescriptionLength
 
 object DeckProgram {
@@ -28,6 +29,17 @@ object DeckProgram {
            |WHERE deck.description = '$description' and anki_user.name = '$name'""".stripMargin
       Fragment.const(query).query[Int].option
     }
+
+  val readLastGeneratedDeckInfoByUserName: (String) => ConnectionIO[Option[(Int, String)]] = (name: String) => {
+    val query: String =
+      s"""SELECT deck.id, deck.description
+         |FROM deck
+         |INNER JOIN anki_user ON deck.user_id = anki_user.id_sequential
+         |WHERE anki_user.name = '$name' AND deck.description LIKE '$GeneratedDeckName%'
+         |ORDER BY deck.id DESC
+         |LIMIT 1""".stripMargin
+    Fragment.const(query).query[(Int, String)].option
+  }
 
   val deleteDeck: Deck => ConnectionIO[Int] = (deck: Deck) => {
     val query: String = s"DELETE FROM deck WHERE description = '${deck.description}'"
