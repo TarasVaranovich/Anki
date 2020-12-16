@@ -9,6 +9,7 @@ import edu.evolution.varanovich.anki.db.program.domain.ServiceProgram._
 import edu.evolution.varanovich.anki.db.program.entity.CardProgram._
 import edu.evolution.varanovich.anki.db.program.entity.DeckProgram.{createDeck, createDeckTable, _}
 import edu.evolution.varanovich.anki.db.program.entity.UserProgram._
+import edu.evolution.varanovich.anki.domain.DeckBuilder.GeneratedDeckName
 import edu.evolution.varanovich.anki.{deckOpt, _}
 import org.scalatest.freespec.AsyncFreeSpec
 import org.scalatest.matchers.should.Matchers
@@ -92,7 +93,8 @@ class DeckAndCardProgramSpec extends AsyncFreeSpec with AsyncIOSpec with Matcher
         createCardList(deckTwo.cards.toList, deckTwoUserTwoId) *>
         createCardList(deckThree.cards.toList, deckThreeUserTwoId)
       )
-      lastGeneratedUserOneInfoOpt <- DbManager.transactor.use(readLastGeneratedDeckInfoByUserName(userOne.name).transact[IO])
+      lastGeneratedUserOneInfoOpt <- DbManager.
+        transactor.use(readLastDeckInfoByPatternAndUserName(GeneratedDeckName, userOne.name).transact[IO])
       lastGeneratedUserOneInfo <- IO
         .fromOption(lastGeneratedUserOneInfoOpt)(throw new Exception("Last generated deck ont found."))
       generatedCardList <- DbManager.transactor.use(readCardList(lastGeneratedUserOneInfo._1).transact[IO])

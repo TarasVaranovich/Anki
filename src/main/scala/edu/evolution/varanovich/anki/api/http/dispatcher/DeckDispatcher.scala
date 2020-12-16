@@ -5,7 +5,7 @@ import cats.implicits.catsSyntaxApply
 import doobie.implicits._
 import edu.evolution.varanovich.anki.adt.{Card, Deck}
 import edu.evolution.varanovich.anki.api.http.AnkiErrorCode._
-import edu.evolution.varanovich.anki.api.http.AnkiServer.{AnkiResponse, ErrorResponse, MultiErrorResponse, ServerErrorResponse}
+import edu.evolution.varanovich.anki.api.http.AnkiServer.{AnkiRequest, AnkiResponse, ErrorResponse, MultiErrorResponse, ServerErrorResponse}
 import edu.evolution.varanovich.anki.api.session.Session.Cache
 import edu.evolution.varanovich.anki.api.session.UserSession
 import edu.evolution.varanovich.anki.db.DbManager
@@ -13,6 +13,7 @@ import edu.evolution.varanovich.anki.db.program.entity.CardProgram.{createCardLi
 import edu.evolution.varanovich.anki.db.program.entity.DeckProgram._
 import edu.evolution.varanovich.anki.db.program.entity.UserProgram.readSequentialId
 import edu.evolution.varanovich.anki.domain.DeckBuilder
+import edu.evolution.varanovich.anki.domain.DeckBuilder.GeneratedDeckName
 import edu.evolution.varanovich.anki.utility.AnkiConfig.{MaxDeckLength, MinDeckLength}
 import edu.evolution.varanovich.anki.utility.StringUtility.matches
 import edu.evolution.varanovich.anki.validator.DeckValidator
@@ -62,19 +63,8 @@ object DeckDispatcher {
   IO[Response[IO]] = {
     val lastGeneratedDeck: String => IO[Response[IO]] = (userId: String) =>
       for {
-        nameOpt <- cache.get(userId).map(_.map(_.userName))
-        deckInfoOpt <- nameOpt match {
-          case Some(name) => DbManager.transactor.use(readLastGeneratedDeckInfoByUserName(name).transact[IO])
-            .handleErrorWith((_: Throwable) => IO(None))
-          case None => IO(None)
-        }
-        cardList <- deckInfoOpt match {
-          case Some((id, _)) => DbManager.transactor.use(readCardList(id).transact[IO])
-            .handleErrorWith((_: Throwable) => IO(List()))
-          case None => IO(List())
-        }
-        description <- IO(deckInfoOpt.map { case (_, description) => description }.getOrElse(""))
-      } yield Deck.from(cardList.toSet, description) match {
+        deck <- readDeckWithCards(GeneratedDeckName, userId, cache)
+      } yield deck match {
         case Some(deck) => Response(Status.Ok).withEntity(DeckResponse(deck))
         case None => Response(Status.NotFound).withEntity(ErrorResponse(s"Deck not found."))
       }
@@ -95,6 +85,24 @@ object DeckDispatcher {
       executeValidated(request, saveToDatabase)
     }
     executeAuthenticated(request, cache, saveDeck)
+  }
+
+  def doLastByPattern(request: Request[IO],
+                      cache: Cache[IO, String, UserSession])(implicit contextShift: ContextShift[IO]):
+  IO[Response[IO]] = {
+    val lastGeneratedDeck: String => IO[Response[IO]] = (userId: String) =>
+      for {
+        body <- request.as[String]
+        deck <- decode[AnkiRequest](body) match {
+          case Left(_) => IO(None)
+          case Right(ankiRequest) => if (ankiRequest.data.nonEmpty)
+            readDeckWithCards(ankiRequest.data, userId, cache) else IO(None)
+        }
+      } yield deck match {
+        case Some(deck) => Response(Status.Ok).withEntity(DeckResponse(deck))
+        case None => Response(Status.NotFound).withEntity(ErrorResponse(s"Deck not found."))
+      }
+    executeAuthenticated(request, cache, lastGeneratedDeck)
   }
 
   private def saveDeckWithCards(deck: Deck,
@@ -121,6 +129,26 @@ object DeckDispatcher {
         case None => IO(ServerError)
       }
     } yield saveResult
+
+  private def readDeckWithCards(pattern: String,
+                                userId: String,
+                                cache: Cache[IO, String, UserSession])(implicit contextShift: ContextShift[IO]):
+  IO[Option[Deck]] =
+    for {
+      nameOpt <- cache.get(userId).map(_.map(_.userName))
+      deckInfoOpt <- nameOpt match {
+        case Some(name) => DbManager
+          .transactor.use(readLastDeckInfoByPatternAndUserName(pattern, name).transact[IO])
+          .handleErrorWith((_: Throwable) => IO(None))
+        case None => IO(None)
+      }
+      cardList <- deckInfoOpt match {
+        case Some((id, _)) => DbManager.transactor.use(readCardList(id).transact[IO])
+          .handleErrorWith((_: Throwable) => IO(List()))
+        case None => IO(List())
+      }
+      description <- IO(deckInfoOpt.map { case (_, description) => description }.getOrElse(""))
+    } yield Deck.from(cardList.toSet, description)
 
   private def executeValidated(request: Request[IO], function: Deck => IO[Response[IO]]): IO[Response[IO]] =
     request.as[String].flatMap {

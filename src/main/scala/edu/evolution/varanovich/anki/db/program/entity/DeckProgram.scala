@@ -2,7 +2,6 @@ package edu.evolution.varanovich.anki.db.program.entity
 
 import doobie.{ConnectionIO, Fragment}
 import edu.evolution.varanovich.anki.adt.Deck
-import edu.evolution.varanovich.anki.domain.DeckBuilder.GeneratedDeckName
 import edu.evolution.varanovich.anki.utility.AnkiConfig.MaxDeckDescriptionLength
 
 object DeckProgram {
@@ -30,16 +29,17 @@ object DeckProgram {
       Fragment.const(query).query[Int].option
     }
 
-  val readLastGeneratedDeckInfoByUserName: (String) => ConnectionIO[Option[(Int, String)]] = (name: String) => {
-    val query: String =
-      s"""SELECT deck.id, deck.description
-         |FROM deck
-         |INNER JOIN anki_user ON deck.user_id = anki_user.id_sequential
-         |WHERE anki_user.name = '$name' AND deck.description LIKE '$GeneratedDeckName%'
-         |ORDER BY deck.id DESC
-         |LIMIT 1""".stripMargin
-    Fragment.const(query).query[(Int, String)].option
-  }
+  val readLastDeckInfoByPatternAndUserName: (String, String) => ConnectionIO[Option[(Int, String)]] =
+    (pattern: String, name: String) => {
+      val query: String =
+        s"""SELECT deck.id, deck.description
+           |FROM deck
+           |INNER JOIN anki_user ON deck.user_id = anki_user.id_sequential
+           |WHERE anki_user.name = '$name' AND deck.description LIKE '$pattern%'
+           |ORDER BY deck.id DESC
+           |LIMIT 1""".stripMargin
+      Fragment.const(query).query[(Int, String)].option
+    }
 
   val deleteDeck: Deck => ConnectionIO[Int] = (deck: Deck) => {
     val query: String = s"DELETE FROM deck WHERE description = '${deck.description}'"

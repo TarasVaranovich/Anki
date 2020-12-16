@@ -1,7 +1,5 @@
 package edu.evolution.varanovich
 
-import java.time.LocalDateTime
-
 import edu.evolution.varanovich.anki.adt.PartOfSpeech._
 import edu.evolution.varanovich.anki.adt.{Card, Deck, Privileges, User}
 import edu.evolution.varanovich.anki.domain.DeckBuilder.GeneratedDeckName

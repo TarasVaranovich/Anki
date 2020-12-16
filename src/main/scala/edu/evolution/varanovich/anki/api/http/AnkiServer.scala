@@ -16,6 +16,7 @@ import scala.concurrent.ExecutionContext
 import scala.concurrent.duration.DurationInt
 
 object AnkiServer extends IOApp {
+  final case class AnkiRequest(data: String)
   final case class AnkiResponse(message: String)
   final case class ErrorResponse(message: String)
   final case class MultiErrorResponse(messages: Array[String])
@@ -28,9 +29,9 @@ object AnkiServer extends IOApp {
       case request@POST -> Root / "register" => UserDispatcher.doRegister(request, cache)
       case request@POST -> Root / "login" => UserDispatcher.doLogin(request, cache)
       case request@GET -> Root / "deck" / size => DeckDispatcher.doRandom(size, request, cache)
-      case request@GET -> Root / "last-deck" => DeckDispatcher.doLastGenerated(request, cache)
+      case request@GET -> Root / "last-generated-deck" => DeckDispatcher.doLastGenerated(request, cache)
       case request@POST -> Root / "save-deck" => DeckDispatcher.doSave(request, cache)
-      //get custom deck by like
+      case request@POST -> Root / "last-deck" => DeckDispatcher.doLastByPattern(request, cache)
     }
   }
 
