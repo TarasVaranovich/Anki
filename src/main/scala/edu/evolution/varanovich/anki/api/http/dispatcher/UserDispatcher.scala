@@ -38,10 +38,10 @@ object UserDispatcher {
       } yield (registerResult, token, idOpt) match {
         case (OperationSuccess, token, idOpt) => idOpt match {
           case Some(id) => Response(Status.Created).withEntity(UserResponse(id, token))
-          case None => Response(Status.InternalServerError).withEntity(ErrorResponse("Server error."))
+          case None => ServerErrorResponse
         }
         case (AlreadyExists, _, _) => Response(Status.Conflict).withEntity(ErrorResponse("User exists."))
-        case (ServerError, _, _) => Response(Status.InternalServerError).withEntity(ErrorResponse("Server error."))
+        case (ServerError, _, _) => ServerErrorResponse
         case (_, _, _) =>
           Response(Status.InternalServerError).withEntity(ErrorResponse("Unknown error. User not created."))
       }

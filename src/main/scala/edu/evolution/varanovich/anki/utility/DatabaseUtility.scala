@@ -37,7 +37,7 @@ object DatabaseUtility extends IOApp {
       _<- DbManager.transactor.use(createPrepositionListSafely(prepositions.toList).transact[IO])
       verbs <- DataReader.all(FileAliases.Verb, DataParser.verb)
       _<- DbManager.transactor.use(createVerbListSafely(verbs.toList).transact[IO])
-      _ <- DbManager.transactorBlock(dropVocabulary *> dropAnki)
+      //_ <- DbManager.transactorBlock(dropVocabulary *> dropAnki)
     } yield ExitCode.Success
   }
 }

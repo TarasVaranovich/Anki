@@ -1,6 +1,6 @@
 package edu.evolution.varanovich.anki.validator
 
-import edu.evolution.varanovich.anki.adt.Deck
+import edu.evolution.varanovich.anki.adt.{Card, Deck}
 import edu.evolution.varanovich.anki.cardListOpt
 import edu.evolution.varanovich.anki.validator.UserValidator.AllErrorsOr
 import org.scalatest.freespec.AnyFreeSpec
@@ -20,6 +20,13 @@ class DeckValidatorSpec extends AnyFreeSpec {
 
   "collects 2 errors due creation of deck with empty data" in {
     val result: AllErrorsOr[Deck] = DeckValidator.validate(List(), "")
+    val errors: List[ValidationError] = result.fold(chain => chain.toNonEmptyList.toList, _ => List.empty)
+    assert(errors.size == 2)
+  }
+
+  "collects 2 errors due creation of deck with invalid card" in {
+    val cards = Card("1", "") :: cardListOpt.getOrElse(List())
+    val result: AllErrorsOr[Deck] = DeckValidator.validate(cards, "")
     val errors: List[ValidationError] = result.fold(chain => chain.toNonEmptyList.toList, _ => List.empty)
     assert(errors.size == 2)
   }

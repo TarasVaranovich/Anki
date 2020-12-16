@@ -5,10 +5,14 @@ import cats.implicits.{catsSyntaxTuple2Semigroupal, catsSyntaxValidatedIdBinComp
 import edu.evolution.varanovich.anki.adt.{Card, Deck}
 import edu.evolution.varanovich.anki.utility.AnkiConfig.{MaxDeckDescriptionLength, MaxDeckLength, MinDeckDescriptionLength, MinDeckLength}
 import edu.evolution.varanovich.anki.utility.WordValidator
+import edu.evolution.varanovich.anki.utility.WordValidator.validPhrase
 
 object DeckValidator {
   case object DeckLengthError extends ValidationError {
-    override def message: String = s"Deck should consist from $MinDeckLength .. $MaxDeckLength"
+    override def message: String = s"Deck should consist from $MinDeckLength .. $MaxDeckLength cards"
+  }
+  case object DeckCardError extends ValidationError {
+    override def message: String = s"Not all deck cards are parts of speech"
   }
   case object DeckDescriptionLengthError extends ValidationError {
     override def message: String =
@@ -24,13 +28,18 @@ object DeckValidator {
   type AllErrorsOr[A] = ValidatedNec[ValidationError, A]
 
   def validate(cards: List[Card], description: String): AllErrorsOr[Deck] =
-    (validateDeckLength(cards),
+    (validateDeckLength(cards).andThen(validateDeckCards),
       validateDeckDescriptionLength(description).andThen(validateDeckDescriptionPattern))
       .mapN((cards, description) => Deck(cards.toSet, description))
 
   private def validateDeckLength(cards: List[Card]): AllErrorsOr[List[Card]] =
     if ((MinDeckLength <= cards.length) && (cards.length <= MaxDeckLength)) cards.validNec else
       DeckLengthError.invalidNec
+
+  private def validateDeckCards(cards: List[Card]): AllErrorsOr[List[Card]] = {
+    val validCards = cards.filter(card => validPhrase(card.question) && validPhrase(card.answer))
+    if (validCards.size == cards.size) cards.validNec else DeckCardError.invalidNec
+  }
 
   private def validateDeckDescriptionLength(description: String): AllErrorsOr[String] =
     if ((MinDeckDescriptionLength <= description.length) && (description.length <= MaxDeckDescriptionLength))

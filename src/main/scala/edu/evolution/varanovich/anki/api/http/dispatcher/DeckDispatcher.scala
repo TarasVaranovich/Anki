@@ -3,19 +3,21 @@ package edu.evolution.varanovich.anki.api.http.dispatcher
 import cats.effect.{ContextShift, IO}
 import cats.implicits.catsSyntaxApply
 import doobie.implicits._
-import edu.evolution.varanovich.anki.adt.Deck
-import edu.evolution.varanovich.anki.api.http.AnkiErrorCode.ServerError
-import edu.evolution.varanovich.anki.api.http.AnkiServer.ErrorResponse
+import edu.evolution.varanovich.anki.adt.{Card, Deck}
+import edu.evolution.varanovich.anki.api.http.AnkiErrorCode._
+import edu.evolution.varanovich.anki.api.http.AnkiServer.{AnkiResponse, ErrorResponse, MultiErrorResponse, ServerErrorResponse}
 import edu.evolution.varanovich.anki.api.session.Session.Cache
 import edu.evolution.varanovich.anki.api.session.UserSession
 import edu.evolution.varanovich.anki.db.DbManager
 import edu.evolution.varanovich.anki.db.program.entity.CardProgram.{createCardList, readCardList}
-import edu.evolution.varanovich.anki.db.program.entity.DeckProgram.{createDeck, readDeckIdByDescriptionAndUserName, readLastGeneratedDeckInfoByUserName}
+import edu.evolution.varanovich.anki.db.program.entity.DeckProgram._
 import edu.evolution.varanovich.anki.db.program.entity.UserProgram.readSequentialId
 import edu.evolution.varanovich.anki.domain.DeckBuilder
 import edu.evolution.varanovich.anki.utility.AnkiConfig.{MaxDeckLength, MinDeckLength}
 import edu.evolution.varanovich.anki.utility.StringUtility.matches
+import edu.evolution.varanovich.anki.validator.DeckValidator
 import io.circe.generic.codec.DerivedAsObjectCodec.deriveCodec
+import io.circe.parser.decode
 import org.http4s.circe.CirceEntityCodec.circeEntityEncoder
 import org.http4s.util.CaseInsensitiveString
 import org.http4s.{Header, Request, Response, Status}
@@ -25,6 +27,7 @@ import scala.util.{Failure, Success, Try}
 object DeckDispatcher {
   private val unauthorizedResponse: Response[IO] =
     Response(Status.Unauthorized).withEntity(ErrorResponse(s"You are not logged in."))
+  private final case class DeckRequest(description: String, cards: Array[Card])
   private final case class DeckResponse(deck: Deck)
   def doRandom(size: String,
                request: Request[IO], cache: Cache[IO, String, UserSession])(implicit contextShift: ContextShift[IO]):
@@ -33,24 +36,9 @@ object DeckDispatcher {
       val generateDeck: (Int) => (String) => IO[Response[IO]] = (sizeInt: Int) => (userId: String) =>
         for {
           deckOpt <- DeckBuilder.randomDeck(sizeInt)
-          userNameOpt <- cache.get(userId).map(_.map(_.userName))
-          userIdOpt <- userNameOpt match {
-            case Some(name) => DbManager.transactor.use(readSequentialId(name).transact[IO])
-              .handleErrorWith((_: Throwable) => IO(None))
-            case None => IO(None)
-          }
-          deckIdOpt <- (userIdOpt, userNameOpt, deckOpt) match {
-            case (Some(userId), Some(name), Some(deck)) =>
-              DbManager.transactorBlock(
-                createDeck(deck, userId) *> readDeckIdByDescriptionAndUserName(deck.description, name))
-                .handleErrorWith((_: Throwable) => IO(None))
-            case (_, _, _) => IO(None)
-          }
-          saveResult <- (deckIdOpt, deckOpt) match {
-            case (Some(deckId), Some(deck)) =>
-              DbManager.transactor.use(createCardList(deck.cards.toList, deckId).transact[IO])
-                .handleErrorWith((_: Throwable) => IO(ServerError))
-            case (_, _) => IO(ServerError)
+          saveResult <- deckOpt match {
+            case Some(deck) => saveDeckWithCards(deck, userId, cache)
+            case None => IO(0)
           }
         } yield (deckOpt, saveResult) match {
           case (_, ServerError) => Response(Status.InternalServerError).withEntity(ErrorResponse(s"Cannot save deck."))
@@ -92,6 +80,63 @@ object DeckDispatcher {
       }
     executeAuthenticated(request, cache, lastGeneratedDeck)
   }
+
+  def doSave(request: Request[IO],
+             cache: Cache[IO, String, UserSession])(implicit contextShift: ContextShift[IO]):
+  IO[Response[IO]] = {
+    val saveDeck: String => IO[Response[IO]] = (userId: String) => {
+      val saveToDatabase: Deck => IO[Response[IO]] = (deck: Deck) => for {
+        saveResult <- saveDeckWithCards(deck, userId, cache)
+      } yield saveResult match {
+        case ServerError => ServerErrorResponse
+        case value => if (value == deck.cards.size) Response(Status.Ok).withEntity(AnkiResponse("Deck is saved.")) else
+          Response(Status.InternalServerError).withEntity(ErrorResponse("Unknown error. Deck not saved."))
+      }
+      executeValidated(request, saveToDatabase)
+    }
+    executeAuthenticated(request, cache, saveDeck)
+  }
+
+  private def saveDeckWithCards(deck: Deck,
+                                userId: String,
+                                cache: Cache[IO, String, UserSession])(implicit contextShift: ContextShift[IO]): IO[Int] =
+    for {
+      userNameOpt <- cache.get(userId).map(_.map(_.userName))
+      userIdOpt <- userNameOpt match {
+        case Some(name) => DbManager.transactor.use(readSequentialId(name).transact[IO])
+          .handleErrorWith((_: Throwable) => IO(None))
+        case None => IO(None)
+      }
+      deckIdOpt <- (userIdOpt, userNameOpt) match {
+        case (Some(userId), Some(name)) =>
+          DbManager.transactorBlock(
+            createDeck(deck, userId) *> readDeckIdByDescriptionAndUserName(deck.description, name))
+            .handleErrorWith((_: Throwable) => IO(None))
+        case (_, _) => IO(None)
+      }
+      saveResult <- deckIdOpt match {
+        case Some(deckId) =>
+          DbManager.transactor.use(createCardList(deck.cards.toList, deckId).transact[IO])
+            .handleErrorWith((_: Throwable) => IO(ServerError))
+        case None => IO(ServerError)
+      }
+    } yield saveResult
+
+  private def executeValidated(request: Request[IO], function: Deck => IO[Response[IO]]): IO[Response[IO]] =
+    request.as[String].flatMap {
+      body =>
+        decode[DeckRequest](body) match {
+          case Left(_) =>
+            IO(Response(Status.UnprocessableEntity).withEntity(ErrorResponse("Cannot parse deck from request body.")))
+          case Right(deckData) => {
+            DeckValidator.validate(deckData.cards.toList, deckData.description).toEither match {
+              case Left(errors) => IO(Response(Status.NotAcceptable)
+                .withEntity(MultiErrorResponse(errors.map(_.message).toNonEmptyList.toList.toArray)))
+              case Right(deck) => function.apply(deck)
+            }
+          }
+        }
+    }
 
   private def executeAuthenticated(request: Request[IO],
                                    cache: Cache[IO, String, UserSession],

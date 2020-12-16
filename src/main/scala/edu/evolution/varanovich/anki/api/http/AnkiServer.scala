@@ -5,17 +5,23 @@ import edu.evolution.varanovich.anki.api.http.ServerConfig._
 import edu.evolution.varanovich.anki.api.http.dispatcher.{DeckDispatcher, UserDispatcher}
 import edu.evolution.varanovich.anki.api.session.Session.Cache
 import edu.evolution.varanovich.anki.api.session.UserSession
-import org.http4s.HttpRoutes
+import io.circe.generic.codec.DerivedAsObjectCodec.deriveCodec
+import org.http4s.circe.CirceEntityCodec.circeEntityEncoder
 import org.http4s.dsl.io.{->, /, GET, POST, Root}
 import org.http4s.implicits.http4sKleisliResponseSyntaxOptionT
 import org.http4s.server.blaze.BlazeServerBuilder
+import org.http4s.{HttpRoutes, Response, Status}
 
 import scala.concurrent.ExecutionContext
 import scala.concurrent.duration.DurationInt
 
 object AnkiServer extends IOApp {
+  final case class AnkiResponse(message: String)
   final case class ErrorResponse(message: String)
   final case class MultiErrorResponse(messages: Array[String])
+
+  val ServerErrorResponse: Response[IO] =
+    Response(Status.InternalServerError).withEntity(ErrorResponse("Server error."))
 
   def ankiRoutes(cache: Cache[IO, String, UserSession]) = {
     HttpRoutes.of[IO] {
@@ -23,7 +29,7 @@ object AnkiServer extends IOApp {
       case request@POST -> Root / "login" => UserDispatcher.doLogin(request, cache)
       case request@GET -> Root / "deck" / size => DeckDispatcher.doRandom(size, request, cache)
       case request@GET -> Root / "last-deck" => DeckDispatcher.doLastGenerated(request, cache)
-      //create custom deck
+      case request@POST -> Root / "save-deck" => DeckDispatcher.doSave(request, cache)
       //get custom deck by like
     }
   }
