@@ -3,6 +3,7 @@ package edu.evolution.varanovich.anki.api.http
 import cats.effect.{ExitCode, IO, IOApp}
 import edu.evolution.varanovich.anki.api.http.ServerConfig._
 import edu.evolution.varanovich.anki.api.http.dispatcher.{DeckDispatcher, UserDispatcher}
+import edu.evolution.varanovich.anki.api.http.protocol.AnkiResponse.ErrorResponse
 import edu.evolution.varanovich.anki.api.session.Session.Cache
 import edu.evolution.varanovich.anki.api.session.UserSession
 import io.circe.generic.codec.DerivedAsObjectCodec.deriveCodec
@@ -16,13 +17,8 @@ import scala.concurrent.ExecutionContext
 import scala.concurrent.duration.DurationInt
 
 object AnkiServer extends IOApp {
-  final case class AnkiRequest(data: String)
-  final case class AnkiResponse(message: String)
-  final case class ErrorResponse(message: String)
-  final case class MultiErrorResponse(messages: Array[String])
-
   val ServerErrorResponse: Response[IO] =
-    Response(Status.InternalServerError).withEntity(ErrorResponse("Server error."))
+    Response(Status.Accepted).withEntity(ErrorResponse("Server error."))
 
   def ankiRoutes(cache: Cache[IO, String, UserSession]) = {
     HttpRoutes.of[IO] {

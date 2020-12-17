@@ -5,6 +5,8 @@ import doobie.implicits._
 import edu.evolution.varanovich.anki.adt.User
 import edu.evolution.varanovich.anki.api.http.AnkiErrorCode._
 import edu.evolution.varanovich.anki.api.http.AnkiServer._
+import edu.evolution.varanovich.anki.api.http.protocol.AnkiRequest.UserRequest
+import edu.evolution.varanovich.anki.api.http.protocol.AnkiResponse._
 import edu.evolution.varanovich.anki.api.session.Session.Cache
 import edu.evolution.varanovich.anki.api.session.UserSession
 import edu.evolution.varanovich.anki.db.DbManager
@@ -17,9 +19,6 @@ import org.http4s.circe.CirceEntityCodec.circeEntityEncoder
 import org.http4s.{Request, Response, Status}
 
 object UserDispatcher {
-  private final case class UserRequest(name: String, password: String)
-  private final case class UserResponse(id: String, token: String)
-
   def doRegister(request: Request[IO], cache: Cache[IO, String, UserSession])(implicit contextShift: ContextShift[IO]):
   IO[Response[IO]] = {
     val register: User => IO[Response[IO]] = (user: User) =>
@@ -40,14 +39,14 @@ object UserDispatcher {
           case Some(id) => Response(Status.Created).withEntity(UserResponse(id, token))
           case None => ServerErrorResponse
         }
-        case (AlreadyExists, _, _) => Response(Status.Conflict).withEntity(ErrorResponse("User exists."))
+        case (AlreadyExists, _, _) => Response(Status.Accepted).withEntity(ErrorResponse("User exists."))
         case (ServerError, _, _) => ServerErrorResponse
         case (_, _, _) =>
-          Response(Status.InternalServerError).withEntity(ErrorResponse("Unknown error. User not created."))
+          Response(Status.Accepted).withEntity(ErrorResponse("Unknown error. User not created."))
       }
     executeValidated(request, register)
   }
-
+  //TODO: check if user can login twice
   def doLogin(request: Request[IO], cache: Cache[IO, String, UserSession])(implicit contextShift: ContextShift[IO]):
   IO[Response[IO]] = {
     val login: User => IO[Response[IO]] = (user: User) =>
@@ -83,11 +82,11 @@ object UserDispatcher {
         }
       } yield (loginResult, token, idOpt) match {
         case (OperationSuccess, token, Some(id)) => Response(Status.Ok).withEntity(UserResponse(id, token))
-        case (NotExists, _, _) => Response(Status.NotFound).withEntity(ErrorResponse("User not found."))
-        case (WrongPassword, _, _) => Response(Status.Found).withEntity(ErrorResponse("Wrong password."))
-        case (Blocked, _, _) => Response(Status.Locked).withEntity(ErrorResponse("User is blocked."))
+        case (NotExists, _, _) => Response(Status.Accepted).withEntity(ErrorResponse("User not found."))
+        case (WrongPassword, _, _) => Response(Status.Accepted).withEntity(ErrorResponse("Wrong password."))
+        case (Blocked, _, _) => Response(Status.Accepted).withEntity(ErrorResponse("User is blocked."))
         case (ServerError, _, _) =>
-          Response(Status.InternalServerError).withEntity(ErrorResponse("Unknown error. Use are not logged in."))
+          Response(Status.Accepted).withEntity(ErrorResponse("Unknown error. Use are not logged in."))
       }
     executeValidated(request, login)
   }
@@ -97,11 +96,11 @@ object UserDispatcher {
       body =>
         decode[UserRequest](body) match {
           case Left(_) =>
-            IO(Response(Status.UnprocessableEntity).withEntity(ErrorResponse("Cannot parse user from request body.")))
+            IO(Response(Status.Accepted).withEntity(ErrorResponse("Cannot parse user from request body.")))
           case Right(userData) =>
             UserValidator.validate(userData.name, userData.password, "member").toEither match {
               case Left(errors) =>
-                IO(Response(Status.NotAcceptable)
+                IO(Response(Status.Accepted)
                   .withEntity(MultiErrorResponse(errors.map(_.message).toNonEmptyList.toList.toArray)))
               case Right(user) => function(user)
             }
