@@ -30,7 +30,7 @@ object UserValidator {
     (validateNameLength(name).andThen(validateNamePattern),
       validatePasswordLength(password).andThen(validatePasswordPattern),
       validatePrivileges(privileges))
-      .mapN((name, password, privileges) => User(name, password, Privileges.parseUnsafe(privileges)))
+      .mapN((name, password, privileges) => User(name, password, Privileges.withName(privileges)))
 
   private def validateNameLength(name: String): AllErrorsOr[String] =
     if ((MinUserNameLength <= name.length) && (name.length <= MaxUserNameLength)) name.validNec else
@@ -49,7 +49,7 @@ object UserValidator {
       PasswordPatternError.invalidNec
 
   private def validatePrivileges(privileges: String): AllErrorsOr[String] =
-    Privileges.valueOf(privileges) match {
+    Privileges.withNameOption(privileges) match {
       case Some(_) => privileges.validNec
       case None => UserPrivilegesError.invalidNec
     }

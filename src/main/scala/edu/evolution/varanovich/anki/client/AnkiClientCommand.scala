@@ -1,10 +1,11 @@
 package edu.evolution.varanovich.anki.client
 
 import cats.effect.IO
-import edu.evolution.varanovich.anki.adt.Card
+import edu.evolution.varanovich.anki.adt.Rate.{Easy, Fail, Good, Hard}
+import edu.evolution.varanovich.anki.adt.{AnswerInfo, Card, Rate}
 import edu.evolution.varanovich.anki.api.http.protocol.AnkiResponse
 import edu.evolution.varanovich.anki.api.http.protocol.AnkiResponse.{AnkiGenericResponse, DeckResponse, ErrorResponse, MultiErrorResponse, UserResponse}
-import edu.evolution.varanovich.anki.client.AnkiClient.{cookies, process}
+import edu.evolution.varanovich.anki.client.AnkiClient.process
 import edu.evolution.varanovich.anki.client.AnkiHttpRequest._
 import org.http4s.circe.CirceEntityCodec.circeEntityDecoder
 import org.http4s.client.Client
@@ -135,23 +136,28 @@ object AnkiClientCommand {
   final case class SolveDeckCommand(client: Client[IO], cardNumber: Int)(implicit cookies: UserCookies)
     extends AnkiClientCommand {
     override def run: IO[Unit] = for {
-      size <- IO(cookies.deck.cards.size)
+      size <- IO(cookies.cardList.size)
       _ <- if (cardNumber > size)
-        IO(println("Stub for results sum up.")) *> process(client) else
+        IO(println("Deck solving completed.")) *> process(client) else
         for {
           _ <- IO(println(s"Question ${cardNumber}:"))
-          _ <- IO(println(cookies.deck.cards.toList(cardNumber - FirstCard).question))
+          millis <- IO(System.currentTimeMillis())
+          _ <- IO(cookies.updateTimeStamp(millis))
+          _ <- IO(println(cookies.cardList(cardNumber - FirstCard).question))
           _ <- IO(println(s"--Type 'N' for move to next card or 'E' for exit without save"))
           next <- IO(scala.io.StdIn.readLine())
           _ <- next match {
-            case "N" => IO(println(cookies.deck.cards.toList(cardNumber - FirstCard).answer)) *>
-              rateAnswer *> SolveDeckCommand(client, cardNumber + 1).run
+            case "N" => IO(cookies.calculateDurationSec(System.currentTimeMillis())) *>
+              IO(println(cookies.cardList(cardNumber - FirstCard).answer)) *>
+              rateAnswer(cookies.cardList(cardNumber - FirstCard), client) *>
+              SolveDeckCommand(client, cardNumber + 1).run
             case "E" => IO.unit
             case _ => SolveDeckCommand(client, cardNumber).run
           }
         } yield ()
     } yield ()
-    private def rateAnswer: IO[Unit] =
+
+    private def rateAnswer(card: Card, client: Client[IO])(implicit cookies: UserCookies): IO[Unit] =
       for {
         _ <- IO(println(
           s"""Rate yourself:
@@ -161,11 +167,28 @@ object AnkiClientCommand {
              |  E - easy""".stripMargin))
         rate <- IO(scala.io.StdIn.readLine())
         _ <- rate match {
-          case "F" => IO(println("Stubbed fail"))
-          case "H" => IO(println("Stubbed hard"))
-          case "G" => IO(println("Stubbed good"))
-          case "E" => IO(println("Stubbed easy"))
-          case _ => rateAnswer
+          case "F" => saveRate(Fail, card, client)
+          case "H" => saveRate(Hard, card, client)
+          case "G" => saveRate(Good, card, client)
+          case "E" => saveRate(Easy, card, client)
+          case _ => rateAnswer(card, client)
+        }
+      } yield ()
+
+    private def saveRate(rate: Rate, card: Card, client: Client[IO])(implicit cookies: UserCookies): IO[Unit] =
+      for {
+        deckDescription <- IO(cookies.deck.description)
+        answerInfoOpt <- IO(AnswerInfo.from(rate, cookies.lastAnswerDurationSec))
+        _ <- answerInfoOpt match {
+          case Some(info) => for {
+            response <- client.expect[AnkiResponse](SaveAnswerInfoRequest(deckDescription, card, info).send)
+              .handleErrorWith((_: Throwable) => IO(ErrorResponse(ErrorMessage)))
+            _ <- response match {
+              case AnkiGenericResponse(message) => IO(println(message))
+              case errorResponse => handleErrorResponse(errorResponse, rateAnswer(card, client))
+            }
+          } yield ()
+          case None => IO(println("Client application error")) *> process(client)
         }
       } yield ()
   }

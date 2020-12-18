@@ -2,7 +2,7 @@ package edu.evolution.varanovich.anki.api.http
 
 import cats.effect.{ExitCode, IO, IOApp}
 import edu.evolution.varanovich.anki.api.http.ServerConfig._
-import edu.evolution.varanovich.anki.api.http.dispatcher.{DeckDispatcher, UserDispatcher}
+import edu.evolution.varanovich.anki.api.http.dispatcher.{CardDispatcher, DeckDispatcher, UserDispatcher}
 import edu.evolution.varanovich.anki.api.http.protocol.AnkiResponse.ErrorResponse
 import edu.evolution.varanovich.anki.api.session.Session.Cache
 import edu.evolution.varanovich.anki.api.session.UserSession
@@ -28,6 +28,7 @@ object AnkiServer extends IOApp {
       case request@GET -> Root / "last-generated-deck" => DeckDispatcher.doLastGenerated(request, cache)
       case request@POST -> Root / "save-deck" => DeckDispatcher.doSave(request, cache)
       case request@POST -> Root / "last-deck" => DeckDispatcher.doLastByPattern(request, cache)
+      case request@POST -> Root / "save-answer-info" => CardDispatcher.createAnswerInfo(request, cache)
     }
   }
 

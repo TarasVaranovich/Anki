@@ -46,7 +46,7 @@ object UserDispatcher {
       }
     executeValidated(request, register)
   }
-  //TODO: check if user can login twice
+
   def doLogin(request: Request[IO], cache: Cache[IO, String, UserSession])(implicit contextShift: ContextShift[IO]):
   IO[Response[IO]] = {
     val login: User => IO[Response[IO]] = (user: User) =>

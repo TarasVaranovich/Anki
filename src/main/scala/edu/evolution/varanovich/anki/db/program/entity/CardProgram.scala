@@ -28,8 +28,17 @@ object CardProgram {
   }
 
   val createCardList: (List[Card], Int) => ConnectionIO[Int] = (card: List[Card], deckId: Int) => {
-    val query: String = s"INSERT INTO card(deck_id,question,answer) VALUES ($deckId, ?,?);"
+    val query: String = s"INSERT INTO card(deck_id, question, answer) VALUES ($deckId, ?, ?);"
     Update[Card](query).updateMany(card)
+  }
+
+  val readCardIdByDeckIdAndContent: (Int, Card) => ConnectionIO[Option[Int]] = (deckId: Int, card: Card) => {
+    val query: String =
+      s"""SELECT id FROM card WHERE
+         |deck_id = '$deckId' AND
+         |question = '${card.question}' AND
+         |answer = '${card.answer}'""".stripMargin
+    Fragment.const(query).query[Int].option
   }
 
   val readCardList: Int => ConnectionIO[List[Card]] = (deckId: Int) => {

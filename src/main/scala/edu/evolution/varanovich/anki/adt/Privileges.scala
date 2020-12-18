@@ -2,36 +2,27 @@ package edu.evolution.varanovich.anki.adt
 
 import doobie.Meta
 import doobie.postgres.implicits.pgEnumStringOpt
+import enumeratum.EnumEntry.Lowercase
+import enumeratum.{Enum, EnumEntry}
 
-trait Privileges
-object Privileges {
+sealed trait Privileges extends EnumEntry with Lowercase
+object Privileges extends Enum[Privileges] {
+  override def values: IndexedSeq[Privileges] = findValues
   case object Admin extends Privileges
   case object Member extends Privileges
 
-  def toEnum(privileges: Privileges): String =
+  private def toEnum(privileges: Privileges): String =
     privileges match {
       case Admin => "Admin"
       case Member => "Member"
     }
 
-  def fromEnum(str: String): Option[Privileges] =
+  private def fromEnum(str: String): Option[Privileges] =
     Option(str) collect {
       case "Admin" => Admin
       case "Member" => Member
     }
 
-  def valueOf(value: String): Option[Privileges] = value match {
-    case "admin" => Some(Admin)
-    case "member" => Some(Member)
-    case _ => None
-  }
-
-  def parseUnsafe(value: String): Privileges = value match {
-    case "admin" => Admin
-    case "member" => Member
-    case _ => throw new Exception(s"Not valid privileges string '$value'")
-  }
-
   implicit val PrivilegesMeta: Meta[Privileges] =
-    pgEnumStringOpt("privileges", Privileges.fromEnum, Privileges.toEnum)
+    pgEnumStringOpt("privileges_enum", Privileges.fromEnum, Privileges.toEnum)
 }

@@ -6,6 +6,7 @@ import doobie.implicits._
 import edu.evolution.varanovich.anki.db.DbManager
 import edu.evolution.varanovich.anki.db.program.domain.ServiceProgram.{dropTable, dropType}
 import edu.evolution.varanovich.anki.db.program.entity.AdjectiveProgram._
+import edu.evolution.varanovich.anki.db.program.entity.AnswerInfoProgram.createAnswerInfoTable
 import edu.evolution.varanovich.anki.db.program.entity.CardProgram.createCardTable
 import edu.evolution.varanovich.anki.db.program.entity.DeckProgram.createDeckTable
 import edu.evolution.varanovich.anki.db.program.entity.NounProgram._
@@ -21,10 +22,11 @@ object DatabaseUtility extends IOApp {
   override def run(args: List[String]): IO[ExitCode] = {
     val createVocabulary = createAdjectiveTable *> createNounTable *>
       createPhraseTable *> createPrepositionTable *> createVerbTable
-    val createAnki = createUserTable *> createDeckTable *> createCardTable
+    val createAnki = createUserTable *> createDeckTable *> createCardTable *> createAnswerInfoTable
     val dropVocabulary = dropTable("adjective") *> dropTable("noun") *> dropTable("preposition") *>
       dropTable("phrase") *> dropTable("verb")
-    val dropAnki = dropTable("card") *> dropTable("deck") *> dropTable("anki_user") *> dropType("privileges_enum")
+    val dropAnki = dropTable("answer_info") *> dropTable("card") *> dropTable("deck") *> dropTable("anki_user") *>
+      dropType("privileges_enum") *> dropType("rate_enum")
     for {
       _ <- DbManager.transactorBlock(createVocabulary *> createAnki)
       adjectives <- DataReader.all(FileAliases.Adjective, DataParser.adjective)
@@ -37,7 +39,7 @@ object DatabaseUtility extends IOApp {
       _ <- DbManager.transactor.use(createPrepositionListSafely(prepositions.toList).transact[IO])
       verbs <- DataReader.all(FileAliases.Verb, DataParser.verb)
       _ <- DbManager.transactor.use(createVerbListSafely(verbs.toList).transact[IO])
-      //_ <- DbManager.transactorBlock(dropVocabulary *> dropAnki)
+      _ <- DbManager.transactorBlock(dropVocabulary *> dropAnki)
     } yield ExitCode.Success
   }
 }

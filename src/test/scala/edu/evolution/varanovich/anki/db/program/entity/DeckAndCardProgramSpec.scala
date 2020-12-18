@@ -33,14 +33,16 @@ class DeckAndCardProgramSpec extends AsyncFreeSpec with AsyncIOSpec with Matcher
       dropCardTableResult <- DbManager.transactor.use(dropTable("card").transact[IO])
       dropDeckTableResult <- DbManager.transactor.use(dropTable("deck").transact[IO])
       dropUserTableResult <- DbManager.transactor.use(dropTable("anki_user").transact[IO])
-      dropTypeResult <- DbManager.transactor.use(dropType("privileges_enum").transact[IO])
+      dropPrivilegesTypeResult <- DbManager.transactor.use(dropType("privileges_enum").transact[IO])
+      dropRateTypeResult <- DbManager.transactor.use(dropType("rate_enum").transact[IO])
     } yield {
       assert(cardListResult.toSet == deck.cards)
       assert(emptyCardList.isEmpty)
       assert(dropCardTableResult == 0)
       assert(dropDeckTableResult == 0)
       assert(dropUserTableResult == 0)
-      assert(dropTypeResult == 0)
+      assert(dropPrivilegesTypeResult == 0)
+      assert(dropRateTypeResult == 0)
     }
   }
 
@@ -103,7 +105,7 @@ class DeckAndCardProgramSpec extends AsyncFreeSpec with AsyncIOSpec with Matcher
       _ <- DbManager.transactor.use(dropTable("anki_user").transact[IO])
       _ <- DbManager.transactor.use(dropType("privileges_enum").transact[IO])
     } yield {
-      assert(generatedCardList.last.question == discoverVerbOpt.get.translation)
+      assert(generatedCardList.toSet == deckTwo.cards)
     }
   }
 }

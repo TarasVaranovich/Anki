@@ -11,4 +11,5 @@ object AnkiConfig {
   val MinDeckDescriptionLength: Int = 5
   val MaxDeckDescriptionLength: Int = 100
   val MaxCardFieldLength: Int = 100
+  val MaxAnswerDuration: Short = 6000
 }

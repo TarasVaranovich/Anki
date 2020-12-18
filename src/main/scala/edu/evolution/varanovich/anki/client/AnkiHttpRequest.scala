@@ -1,8 +1,8 @@
 package edu.evolution.varanovich.anki.client
 
 import cats.effect.IO
-import edu.evolution.varanovich.anki.adt.Card
-import edu.evolution.varanovich.anki.api.http.protocol.AnkiRequest.{AnkiGenericRequest, DeckRequest, UserRequest}
+import edu.evolution.varanovich.anki.adt.{AnswerInfo, Card}
+import edu.evolution.varanovich.anki.api.http.protocol.AnkiRequest.{AnkiGenericRequest, CreateAnswerInfoRequest, DeckRequest, UserRequest}
 import io.circe.generic.codec.DerivedAsObjectCodec.deriveCodec
 import org.http4s.circe.CirceEntityCodec.circeEntityEncoder
 import org.http4s.{Header, Method, Request}
@@ -62,5 +62,16 @@ object AnkiHttpRequest {
         Header.apply("user-id", cookies.id),
         Header.apply("token", cookies.token))
       .withEntity(AnkiGenericRequest(pattern))
+  }
+  final case class SaveAnswerInfoRequest(deckDescription: String, card: Card, info: AnswerInfo)
+    extends AnkiHttpRequest {
+    override def send(implicit cookies: UserCookies): Request[IO] = new Request()
+      .withMethod(Method.POST)
+      .withUri(Uri)
+      .withPathInfo("/save-answer-info")
+      .withHeaders(
+        Header.apply("user-id", cookies.id),
+        Header.apply("token", cookies.token))
+      .withEntity(CreateAnswerInfoRequest(deckDescription, card, info))
   }
 }
