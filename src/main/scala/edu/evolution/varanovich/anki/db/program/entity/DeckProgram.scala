@@ -41,6 +41,18 @@ object DeckProgram {
       Fragment.const(query).query[(Int, String)].option
     }
 
+  val readEarliestFreshDeckInfo: (String) => ConnectionIO[Option[(Int, String)]] = (name: String) => {
+    val query: String =
+      s"""SELECT DISTINCT deck.id, description
+         |FROM deck
+         |INNER JOIN anki_user ON deck.user_id = anki_user.id_sequential
+         |INNER JOIN card ON deck.id = card.deck_id
+         |LEFT OUTER JOIN answer_info ON card.id = answer_info.card_id
+         |WHERE anki_user.name = '$name' AND answer_info.id IS NULL
+         |ORDER BY deck.id ASC LIMIT 1;""".stripMargin
+    Fragment.const(query).query[(Int, String)].option
+  }
+
   val deleteDeck: Deck => ConnectionIO[Int] = (deck: Deck) => {
     val query: String = s"DELETE FROM deck WHERE description = '${deck.description}'"
     Fragment.const(query).update.run

@@ -1,6 +1,7 @@
 package edu.evolution.varanovich.anki.client
 
 import cats.effect.IO
+import cats.effect.IO.ioEffect
 import edu.evolution.varanovich.anki.adt.Rate.{Easy, Fail, Good, Hard}
 import edu.evolution.varanovich.anki.adt.{AnswerInfo, Card, Rate}
 import edu.evolution.varanovich.anki.api.http.protocol.AnkiResponse
@@ -193,9 +194,25 @@ object AnkiClientCommand {
       } yield ()
   }
 
+  final case class EarliestFreshDeckCommand(client: Client[IO])(implicit cookies: UserCookies)
+    extends AnkiClientCommand {
+    override def run: IO[Unit] = for {
+      response <- client.expect[AnkiResponse](EarliestFreshDeckRequest().send)
+        .handleErrorWith((_: Throwable) => IO(ErrorResponse(ErrorMessage)))
+      _ <- response match {
+        case DeckResponse(deck) => IO(cookies.updateDeck(deck)) *>
+          IO(println(
+            s"""Earliest deck with unsolved cards received successfully.
+               |Solve deck '${cookies.deck.description}'""".stripMargin)) *>
+          doCancellable(SolveDeckCommand(client, FirstCard).run)
+        case errorResponse => handleErrorResponse(errorResponse, EarliestFreshDeckCommand(client).run)
+      }
+    } yield ()
+  }
+
   private def doCancellable(operation: IO[Unit]): IO[Unit] =
     for {
-      _ <- IO(println("Would you continue? Y - yes; N -no"))
+      _ <- IO(println("Would you continue? Y - yes; N - no"))
       answer <- IO(scala.io.StdIn.readLine())
       _ <- answer match {
         case "Y" => operation

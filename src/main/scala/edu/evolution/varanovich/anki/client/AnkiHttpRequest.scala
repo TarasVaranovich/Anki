@@ -74,4 +74,13 @@ object AnkiHttpRequest {
         Header.apply("token", cookies.token))
       .withEntity(CreateAnswerInfoRequest(deckDescription, card, info))
   }
+  final case class EarliestFreshDeckRequest() extends AnkiHttpRequest {
+    override def send(implicit cookies: UserCookies): Request[IO] = new Request()
+      .withMethod(Method.GET)
+      .withUri(Uri)
+      .withPathInfo(s"/earliest-fresh-deck")
+      .withHeaders(
+        Header.apply("user-id", cookies.id),
+        Header.apply("token", cookies.token))
+  }
 }

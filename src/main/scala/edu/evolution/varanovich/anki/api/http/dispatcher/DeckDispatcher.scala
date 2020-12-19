@@ -104,6 +104,30 @@ object DeckDispatcher {
     executeAuthenticated(request, cache, lastGeneratedDeck)
   }
 
+  def doEarliestFresh(request: Request[IO],
+                      cache: Cache[IO, String, UserSession])(implicit contextShift: ContextShift[IO]):
+  IO[Response[IO]] = {
+    val lastGeneratedDeck: String => IO[Response[IO]] = (userId: String) =>
+      for {
+        userNameOpt <- cache.get(userId).map(_.map(_.userName))
+        deckInfoOpt <- userNameOpt match {
+          case Some(name) => DbManager.transactor.use(readEarliestFreshDeckInfo(name).transact[IO])
+            .handleErrorWith((_: Throwable) => IO(None))
+          case None => IO(None)
+        }
+        cardList <- deckInfoOpt match {
+          case Some((id, _)) => DbManager.transactor.use(readCardList(id).transact[IO])
+            .handleErrorWith((_: Throwable) => IO(List()))
+          case None => IO(List())
+        }
+        description <- IO(deckInfoOpt.map { case (_, description) => description }.getOrElse(""))
+      } yield Deck.from(cardList.toSet, description) match {
+        case Some(deck) => Response(Status.Ok).withEntity(DeckResponse(deck))
+        case None => Response(Status.Accepted).withEntity(ErrorResponse(s"Deck not found."))
+      }
+    executeAuthenticated(request, cache, lastGeneratedDeck)
+  }
+
   private def saveDeckWithCards(deck: Deck,
                                 userId: String,
                                 cache: Cache[IO, String, UserSession])(implicit contextShift: ContextShift[IO]): IO[Int] =

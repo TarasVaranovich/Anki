@@ -7,7 +7,7 @@ import doobie.implicits._
 import edu.evolution.varanovich.anki.db.DbManager
 import edu.evolution.varanovich.anki.db.program.domain.ServiceProgram._
 import edu.evolution.varanovich.anki.db.program.entity.CardProgram._
-import edu.evolution.varanovich.anki.db.program.entity.DeckProgram.{createDeck, createDeckTable, _}
+import edu.evolution.varanovich.anki.db.program.entity.DeckProgram.{createDeck, createDeckTable, readEarliestFreshDeckInfo, _}
 import edu.evolution.varanovich.anki.db.program.entity.UserProgram._
 import edu.evolution.varanovich.anki.domain.DeckBuilder.GeneratedDeckName
 import edu.evolution.varanovich.anki.{deckOpt, _}

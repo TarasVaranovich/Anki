@@ -29,6 +29,8 @@ object AnkiServer extends IOApp {
       case request@POST -> Root / "save-deck" => DeckDispatcher.doSave(request, cache)
       case request@POST -> Root / "last-deck" => DeckDispatcher.doLastByPattern(request, cache)
       case request@POST -> Root / "save-answer-info" => CardDispatcher.createAnswerInfo(request, cache)
+      case request@GET -> Root / "earliest-fresh-deck" => DeckDispatcher.doEarliestFresh(request, cache)
+      //generate not saved deck with worst results
     }
   }
 
