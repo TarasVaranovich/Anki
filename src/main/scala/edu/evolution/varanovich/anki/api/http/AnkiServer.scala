@@ -30,7 +30,8 @@ object AnkiServer extends IOApp {
       case request@POST -> Root / "last-deck" => DeckDispatcher.doLastByPattern(request, cache)
       case request@POST -> Root / "save-answer-info" => CardDispatcher.createAnswerInfo(request, cache)
       case request@GET -> Root / "earliest-fresh-deck" => DeckDispatcher.doEarliestFresh(request, cache)
-      //generate not saved deck with worst results
+      case request@GET -> Root / "cards-for-improve" / limit => CardDispatcher.doCardsForImprove(request, cache, limit)
+      case request@POST -> Root / "improve-answer-info" => CardDispatcher.improveAnswerInfo(request, cache)
     }
   }
 

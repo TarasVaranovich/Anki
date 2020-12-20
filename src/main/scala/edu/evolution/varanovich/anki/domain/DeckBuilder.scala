@@ -76,16 +76,6 @@ object DeckBuilder {
     }
   }
 
-  //solve not solved: -> improve results. add comment
-  //generate deck from top cards with worst result
-  // if no cards with bad answer than pick up from cards with slowest answer
-  //if no cards generate as it is
-
-  //add comment to UI (description)
-  //change name
-  //def worstResultsDeck(size: Int)(implicit contextShift: ContextShift[IO]): IO[Option[Deck]] = ???
-    //select cards order by average rate
-
   private def partitionSelection(cardCount: Int)(implicit contextShift: ContextShift[IO]): IO[Partition] = {
     for {
       adjectiveCountOpt <- DbManager.transactor.use(readRowsCount(Adjective.name).transact[IO])

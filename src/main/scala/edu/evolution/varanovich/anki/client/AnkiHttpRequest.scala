@@ -63,22 +63,34 @@ object AnkiHttpRequest {
         Header.apply("token", cookies.token))
       .withEntity(AnkiGenericRequest(pattern))
   }
-  final case class SaveAnswerInfoRequest(deckDescription: String, card: Card, info: AnswerInfo)
+  final case class SaveAnswerInfoRequest(identity: String, card: Card, info: AnswerInfo, isImprove: Boolean)
     extends AnkiHttpRequest {
-    override def send(implicit cookies: UserCookies): Request[IO] = new Request()
-      .withMethod(Method.POST)
-      .withUri(Uri)
-      .withPathInfo("/save-answer-info")
-      .withHeaders(
-        Header.apply("user-id", cookies.id),
-        Header.apply("token", cookies.token))
-      .withEntity(CreateAnswerInfoRequest(deckDescription, card, info))
+    override def send(implicit cookies: UserCookies): Request[IO] = {
+      val path: String = if (isImprove) "improve-answer-info" else "save-answer-info"
+      new Request()
+        .withMethod(Method.POST)
+        .withUri(Uri)
+        .withPathInfo(s"/$path")
+        .withHeaders(
+          Header.apply("user-id", cookies.id),
+          Header.apply("token", cookies.token))
+        .withEntity(CreateAnswerInfoRequest(identity, card, info))
+    }
   }
   final case class EarliestFreshDeckRequest() extends AnkiHttpRequest {
     override def send(implicit cookies: UserCookies): Request[IO] = new Request()
       .withMethod(Method.GET)
       .withUri(Uri)
       .withPathInfo(s"/earliest-fresh-deck")
+      .withHeaders(
+        Header.apply("user-id", cookies.id),
+        Header.apply("token", cookies.token))
+  }
+  final case class CardsForImproveRequest(limit: Int) extends AnkiHttpRequest {
+    override def send(implicit cookies: UserCookies): Request[IO] = new Request()
+      .withMethod(Method.GET)
+      .withUri(Uri)
+      .withPathInfo(s"/cards-for-improve/$limit")
       .withHeaders(
         Header.apply("user-id", cookies.id),
         Header.apply("token", cookies.token))

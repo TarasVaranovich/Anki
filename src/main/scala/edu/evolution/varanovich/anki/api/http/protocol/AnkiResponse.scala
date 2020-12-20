@@ -1,7 +1,7 @@
 package edu.evolution.varanovich.anki.api.http.protocol
 
 import cats.syntax.functor._
-import edu.evolution.varanovich.anki.adt.Deck
+import edu.evolution.varanovich.anki.adt.{Card, Deck}
 import io.circe.Decoder
 import io.circe.generic.codec.DerivedAsObjectCodec.deriveCodec
 
@@ -12,6 +12,7 @@ object AnkiResponse {
   final case class MultiErrorResponse(errors: Array[String]) extends AnkiResponse
   final case class DeckResponse(deck: Deck) extends AnkiResponse
   final case class UserResponse(id: String, token: String) extends AnkiResponse
+  final case class CardsForImproveResponse(cardsMap: Map[String, Card]) extends AnkiResponse
 
   implicit val decodeAnkiResponse: Decoder[AnkiResponse] =
     List[Decoder[AnkiResponse]](
@@ -19,6 +20,7 @@ object AnkiResponse {
       Decoder[ErrorResponse].widen,
       Decoder[MultiErrorResponse].widen,
       Decoder[DeckResponse].widen,
-      Decoder[UserResponse].widen
+      Decoder[UserResponse].widen,
+      Decoder[CardsForImproveResponse].widen
     ).reduceLeft(_ or _)
 }

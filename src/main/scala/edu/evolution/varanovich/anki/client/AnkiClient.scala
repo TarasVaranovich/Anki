@@ -19,6 +19,7 @@ object AnkiClient extends IOApp {
          |  C - create new deck;
          |  F - find deck;
          |  U - get first(earliest) deck with unsolved cards;
+         |  I - improve results of cards with weak answers;
          |  E - exit""".stripMargin))
     line <- IO(scala.io.StdIn.readLine())
     _ <- line match {
@@ -27,6 +28,7 @@ object AnkiClient extends IOApp {
       case "C" => CreateDeckCommand(client).run
       case "F" => FindDeckCommand(client).run
       case "U" => EarliestFreshDeckCommand(client).run
+      case "I" => CardsForImproveCommand(client).run
       case "E" => IO.unit
       case _ => process(client)
     }

@@ -5,7 +5,7 @@ import cats.effect.IO.ioEffect
 import edu.evolution.varanovich.anki.adt.Rate.{Easy, Fail, Good, Hard}
 import edu.evolution.varanovich.anki.adt.{AnswerInfo, Card, Rate}
 import edu.evolution.varanovich.anki.api.http.protocol.AnkiResponse
-import edu.evolution.varanovich.anki.api.http.protocol.AnkiResponse.{AnkiGenericResponse, DeckResponse, ErrorResponse, MultiErrorResponse, UserResponse}
+import edu.evolution.varanovich.anki.api.http.protocol.AnkiResponse.{AnkiGenericResponse, CardsForImproveResponse, DeckResponse, ErrorResponse, MultiErrorResponse, UserResponse}
 import edu.evolution.varanovich.anki.client.AnkiClient.process
 import edu.evolution.varanovich.anki.client.AnkiHttpRequest._
 import org.http4s.circe.CirceEntityCodec.circeEntityDecoder
@@ -30,7 +30,7 @@ object AnkiClientCommand {
       _ <- response match {
         case UserResponse(id, token) => IO(cookies.updateCredentials(id, token)) *>
           IO(println("Registration successful.")) *> IO.unit
-        case errorResponse => handleErrorResponse(errorResponse, RegisterCommand(client).run)
+        case errorResponse => handleErrorResponse(errorResponse, RegisterCommand(client).run, client)
       }
     } yield ()
   }
@@ -47,7 +47,7 @@ object AnkiClientCommand {
       _ <- response match {
         case UserResponse(id, token) => IO(cookies.updateCredentials(id, token)) *>
           IO(println("Login successful.")) *> IO.unit
-        case errorResponse => handleErrorResponse(errorResponse, LoginCommand(client).run)
+        case errorResponse => handleErrorResponse(errorResponse, LoginCommand(client).run, client)
       }
     } yield ()
   }
@@ -60,7 +60,7 @@ object AnkiClientCommand {
         .handleErrorWith((_: Throwable) => IO(ErrorResponse(ErrorMessage)))
       _ <- response match {
         case AnkiGenericResponse(message) => IO(println(message)) *> process(client)
-        case errorResponse => handleErrorResponse(errorResponse, CreateDeckCommand(client).run)
+        case errorResponse => handleErrorResponse(errorResponse, CreateDeckCommand(client).run, client)
       }
     } yield ()
 
@@ -88,8 +88,8 @@ object AnkiClientCommand {
             IO(println(
               s"""Last deck matching pattern received successfully.
                  |Solve deck '${cookies.deck.description}'""".stripMargin)) *>
-            doCancellable(SolveDeckCommand(client, FirstCard).run)
-          case errorResponse => handleErrorResponse(errorResponse, FindDeckCommand(client).run)
+            doCancellable(SolveDeckCommand(client, FirstCard).run, client)
+          case errorResponse => handleErrorResponse(errorResponse, FindDeckCommand(client).run, client)
         }
       } yield ()
   }
@@ -113,8 +113,8 @@ object AnkiClientCommand {
             IO(println(
               s"""Deck created successfully.
                  |Solve deck '${cookies.deck.description}'""".stripMargin)) *>
-            doCancellable(SolveDeckCommand(client, FirstCard).run)
-          case errorResponse => handleErrorResponse(errorResponse, GenerateDeckCommand(client).run)
+            doCancellable(SolveDeckCommand(client, FirstCard).run, client)
+          case errorResponse => handleErrorResponse(errorResponse, GenerateDeckCommand(client).run, client)
         }
       } yield ()
   }
@@ -129,8 +129,8 @@ object AnkiClientCommand {
           IO(println(
             s"""Last generated deck received successfully.
                |Solve deck '${cookies.deck.description}'""".stripMargin)) *>
-          doCancellable(SolveDeckCommand(client, FirstCard).run)
-        case errorResponse => handleErrorResponse(errorResponse, LastGeneratedDeckCommand(client).run)
+          doCancellable(SolveDeckCommand(client, FirstCard).run, client)
+        case errorResponse => handleErrorResponse(errorResponse, LastGeneratedDeckCommand(client).run, client)
       }
     } yield ()
   }
@@ -178,15 +178,17 @@ object AnkiClientCommand {
 
     private def saveRate(rate: Rate, card: Card, client: Client[IO])(implicit cookies: UserCookies): IO[Unit] =
       for {
-        deckDescription <- IO(cookies.deck.description)
+        identity <- if (cookies.isTemporaryCardSet) IO(cookies.resolveCardIdentity(card)) else
+          IO(cookies.deck.description)
         answerInfoOpt <- IO(AnswerInfo.from(rate, cookies.lastAnswerDurationSec))
         _ <- answerInfoOpt match {
           case Some(info) => for {
-            response <- client.expect[AnkiResponse](SaveAnswerInfoRequest(deckDescription, card, info).send)
+            response <- client.expect[AnkiResponse](
+              SaveAnswerInfoRequest(identity, card, info, cookies.isTemporaryCardSet).send)
               .handleErrorWith((_: Throwable) => IO(ErrorResponse(ErrorMessage)))
             _ <- response match {
               case AnkiGenericResponse(message) => IO(println(message))
-              case errorResponse => handleErrorResponse(errorResponse, rateAnswer(card, client))
+              case errorResponse => handleErrorResponse(errorResponse, rateAnswer(card, client), client)
             }
           } yield ()
           case None => IO(println("Client application error")) *> process(client)
@@ -204,25 +206,52 @@ object AnkiClientCommand {
           IO(println(
             s"""Earliest deck with unsolved cards received successfully.
                |Solve deck '${cookies.deck.description}'""".stripMargin)) *>
-          doCancellable(SolveDeckCommand(client, FirstCard).run)
-        case errorResponse => handleErrorResponse(errorResponse, EarliestFreshDeckCommand(client).run)
+          doCancellable(SolveDeckCommand(client, FirstCard).run, client)
+        case errorResponse => handleErrorResponse(errorResponse, EarliestFreshDeckCommand(client).run, client)
       }
     } yield ()
   }
 
-  private def doCancellable(operation: IO[Unit]): IO[Unit] =
+  final case class CardsForImproveCommand(client: Client[IO])(implicit cookies: UserCookies)
+    extends AnkiClientCommand {
+    override def run: IO[Unit] = for {
+      _ <- IO(println("Input size limit of card set as number."))
+      line <- IO(scala.io.StdIn.readLine())
+      _ <- Try(line.toInt) match {
+        case Success(size) => requestCardsForImprove(client, size)
+        case Failure(_) => IO(println("Deck size should de integer.")) *> GenerateDeckCommand(client).run
+      }
+    } yield ()
+
+    private def requestCardsForImprove(client: Client[IO], limit: Int)(implicit cookies: UserCookies): IO[Unit] =
+      for {
+        response <- client.expect[AnkiResponse](CardsForImproveRequest(limit).send)
+          .handleErrorWith((_: Throwable) => IO(ErrorResponse(ErrorMessage)))
+        _ <- response match {
+          case CardsForImproveResponse(cardsMap) => IO(cookies.updateTemporaryDeck(cardsMap)) *>
+            IO(println(
+              s"""Generated temporary set from cards which results should be improved.
+                 |Available ${cardsMap.size} of announced limit $limit.""".stripMargin)) *>
+            doCancellable(SolveDeckCommand(client, FirstCard).run, client)
+          case errorResponse => handleErrorResponse(errorResponse, CardsForImproveCommand(client).run, client)
+        }
+      } yield ()
+  }
+
+  private def doCancellable(operation: IO[Unit], client: Client[IO]): IO[Unit] =
     for {
       _ <- IO(println("Would you continue? Y - yes; N - no"))
       answer <- IO(scala.io.StdIn.readLine())
       _ <- answer match {
         case "Y" => operation
-        case "N" => IO.unit
-        case _ => doCancellable(operation)
+        case "N" => process(client)
+        case _ => doCancellable(operation, client)
       }
     } yield ()
 
-  private def handleErrorResponse(response: AnkiResponse, callbackF: IO[Unit]): IO[Unit] = response match {
-    case ErrorResponse(message) => IO(println(message)) *> doCancellable(callbackF)
-    case MultiErrorResponse(messages) => IO(messages.foreach(println)) *> doCancellable(callbackF)
+  private def handleErrorResponse(response: AnkiResponse, callbackF: IO[Unit], client: Client[IO]):
+  IO[Unit] = response match {
+    case ErrorResponse(message) => IO(println(message)) *> doCancellable(callbackF, client)
+    case MultiErrorResponse(messages) => IO(messages.foreach(println)) *> doCancellable(callbackF, client)
   }
 }
