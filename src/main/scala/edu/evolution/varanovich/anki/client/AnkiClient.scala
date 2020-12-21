@@ -12,7 +12,8 @@ object AnkiClient extends IOApp {
 
   def process(client: Client[IO]): IO[Unit] = for {
     _ <- IO(println(
-      s""""Lets start Anki education"
+      s"""
+         |Lets start Anki education
          |Choose menu option:
          |  N - generate new deck;
          |  L - get last generated deck;
@@ -44,18 +45,19 @@ object AnkiClient extends IOApp {
            |  E - exit""".stripMargin))
       line <- IO(scala.io.StdIn.readLine())
       _ <- line match {
-        case "R" => RegisterCommand(client).run
-        case "L" => LoginCommand(client).run
+        case "R" => RegisterCommand(client).run *> process(client)
+        case "L" => LoginCommand(client).run *> process(client)
         case "E" => IO.unit
         case _ => welcome(client)
       }
-      _ <- process(client)
     } yield ()
 
   override def run(args: List[String]): IO[ExitCode] =
     BlazeClientBuilder[IO](ExecutionContext.global).resource.use { client =>
       for {
-        _ <- IO(println("Welcome to anki application!"))
+        _ <- IO(println(
+          s"""
+             |Welcome to anki application!""".stripMargin))
         _ <- welcome(client)
       } yield ()
     }.as(ExitCode.Success)

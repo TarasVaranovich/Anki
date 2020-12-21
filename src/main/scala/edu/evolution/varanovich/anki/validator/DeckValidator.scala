@@ -40,7 +40,8 @@ object DeckValidator {
     val validateCardField: String => Boolean = (field: String) =>
       validPhrase(field) || validTranslation(field) || field.split("/")
         .forall(part => validTranscription(part) || validValue(part) || (part == NotDefined))
-    val validCards = cards.filter(card => validateCardField(card.question) && validateCardField(card.answer))
+    val validCards = cards
+      .filter(card => validateCardField(card.question) && validateCardField(card.answer))
     if (validCards.size == cards.size) cards.validNec else DeckCardError.invalidNec
   }
 

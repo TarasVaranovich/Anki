@@ -16,17 +16,27 @@ import edu.evolution.varanovich.anki.db.program.entity.UserProgram.createUserTab
 import edu.evolution.varanovich.anki.db.program.entity.VerbProgram.{createVerbListSafely, createVerbTable}
 import edu.evolution.varanovich.anki.file.{DataParser, DataReader, FileAliases}
 
-//TODO: apply parallel execution on vocabulary tables
-//TODO: create command line application which accepts parameters
+
 object DatabaseUtility extends IOApp {
   override def run(args: List[String]): IO[ExitCode] = {
+    if(args.nonEmpty) {
+      val mode = args.head
+      for {
+        _ <- mode match {
+          case "init" => initDatabaseTables
+          case "drop" => dropDatabaseTables
+          case param => IO(println(s"Unknown parameter '$param'"))
+        }
+      } yield ExitCode.Success
+    } else IO(println("Put arguments 'init' or 'drop'.")) *> IO(ExitCode.Error)
+
+  }
+
+  def initDatabaseTables: IO[Unit] = {
     val createVocabulary = createAdjectiveTable *> createNounTable *>
       createPhraseTable *> createPrepositionTable *> createVerbTable
     val createAnki = createUserTable *> createDeckTable *> createCardTable *> createAnswerInfoTable
-    val dropVocabulary = dropTable("adjective") *> dropTable("noun") *> dropTable("preposition") *>
-      dropTable("phrase") *> dropTable("verb")
-    val dropAnki = dropTable("answer_info") *> dropTable("card") *> dropTable("deck") *> dropTable("anki_user") *>
-      dropType("privileges_enum") *> dropType("rate_enum")
+
     for {
       _ <- DbManager.transactorBlock(createVocabulary *> createAnki)
       adjectives <- DataReader.all(FileAliases.Adjective, DataParser.adjective)
@@ -39,7 +49,15 @@ object DatabaseUtility extends IOApp {
       _ <- DbManager.transactor.use(createPrepositionListSafely(prepositions.toList).transact[IO])
       verbs <- DataReader.all(FileAliases.Verb, DataParser.verb)
       _ <- DbManager.transactor.use(createVerbListSafely(verbs.toList).transact[IO])
-      _ <- DbManager.transactorBlock(dropVocabulary *> dropAnki)
-    } yield ExitCode.Success
+    } yield ()
+  }
+
+  def dropDatabaseTables: IO[Unit] = {
+    val dropVocabulary = dropTable("adjective") *> dropTable("noun") *> dropTable("preposition") *>
+      dropTable("phrase") *> dropTable("verb")
+    val dropAnki = dropTable("answer_info") *> dropTable("card") *> dropTable("deck") *> dropTable("anki_user") *>
+      dropType("privileges_enum") *> dropType("rate_enum")
+
+    DbManager.transactorBlock(dropVocabulary *> dropAnki).map(_ => ())
   }
 }

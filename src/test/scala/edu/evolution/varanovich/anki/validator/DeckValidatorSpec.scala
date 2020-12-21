@@ -44,4 +44,10 @@ class DeckValidatorSpec extends AnyFreeSpec {
     val errors: List[ValidationError] = result.fold(chain => chain.toNonEmptyList.toList, _ => List.empty)
     assert(errors.size == 1)
   }
+
+  "successfully creates deck with synthetic part of speech" in {
+    val cards = Card("карта один вопрос один", "card one question one") :: cardListOpt.getOrElse(List())
+    val result: AllErrorsOr[Deck] = DeckValidator.validate(cards, "Description")
+    assert(result.isValid)
+  }
 }

@@ -141,7 +141,9 @@ object AnkiClientCommand {
       _ <- if (cardNumber > size)
         IO(println("Deck solving completed.")) *> process(client) else
         for {
-          _ <- IO(println(s"Question ${cardNumber}:"))
+          _ <- IO(println(
+            s"""
+               |Question ${cardNumber}:""".stripMargin))
           millis <- IO(System.currentTimeMillis())
           _ <- IO(cookies.updateTimeStamp(millis))
           _ <- IO(println(cookies.cardList(cardNumber - FirstCard).question))
@@ -149,7 +151,9 @@ object AnkiClientCommand {
           next <- IO(scala.io.StdIn.readLine())
           _ <- next match {
             case "N" => IO(cookies.calculateDurationSec(System.currentTimeMillis())) *>
-              IO(println(cookies.cardList(cardNumber - FirstCard).answer)) *>
+              IO(println(
+                s"""
+                   |${cookies.cardList(cardNumber - FirstCard).answer}""".stripMargin)) *>
               rateAnswer(cookies.cardList(cardNumber - FirstCard), client) *>
               SolveDeckCommand(client, cardNumber + 1).run
             case "E" => IO.unit
