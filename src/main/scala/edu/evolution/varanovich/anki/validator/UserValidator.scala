@@ -2,7 +2,7 @@ package edu.evolution.varanovich.anki.validator
 
 import cats.data.ValidatedNec
 import cats.implicits.{catsSyntaxTuple3Semigroupal, catsSyntaxValidatedIdBinCompat0}
-import edu.evolution.varanovich.anki.adt.{Privileges, User}
+import edu.evolution.varanovich.anki.model.{Privileges, User}
 import edu.evolution.varanovich.anki.utility.AnkiConfig._
 import edu.evolution.varanovich.anki.utility.StringUtility.matches
 

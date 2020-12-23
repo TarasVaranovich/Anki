@@ -5,7 +5,6 @@ import java.time.format.DateTimeFormatter
 
 import cats.effect.{ContextShift, IO}
 import doobie.implicits._
-import edu.evolution.varanovich.anki.adt.{Card, Deck, PartOfSpeech}
 import edu.evolution.varanovich.anki.db.DbManager
 import edu.evolution.varanovich.anki.db.program.domain.ServiceProgram.{readMaxId, readRowsCount}
 import edu.evolution.varanovich.anki.db.program.entity.AdjectiveProgram.readAdjectiveById
@@ -14,6 +13,7 @@ import edu.evolution.varanovich.anki.db.program.entity.PhraseProgram.readPhraseB
 import edu.evolution.varanovich.anki.db.program.entity.PrepositionProgram.readPrepositionById
 import edu.evolution.varanovich.anki.db.program.entity.VerbProgram.readVerbById
 import edu.evolution.varanovich.anki.domain.DeckBuilder.Alias._
+import edu.evolution.varanovich.anki.model.{Card, Deck, PartOfSpeech}
 import edu.evolution.varanovich.anki.utility.VocabularyConfig.AvailablePartsOfSpeechCount
 
 import scala.util.Random

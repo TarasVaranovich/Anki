@@ -1,4 +1,4 @@
-package edu.evolution.varanovich.anki.adt
+package edu.evolution.varanovich.anki.model
 
 final case class User private(name: String, password: String, privileges: Privileges) extends Ordered[User] {
   override def equals(that: Any): Boolean = that match {

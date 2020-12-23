@@ -4,7 +4,6 @@ import java.util.UUID
 
 import cats.effect.{ContextShift, IO}
 import doobie.implicits._
-import edu.evolution.varanovich.anki.adt.{AnswerInfo, Card}
 import edu.evolution.varanovich.anki.api.http.AnkiErrorCode.{OperationSuccess, ServerError}
 import edu.evolution.varanovich.anki.api.http.AnkiServer.ServerErrorResponse
 import edu.evolution.varanovich.anki.api.http.dispatcher.DispatcherUtility.executeAuthenticated
@@ -16,6 +15,7 @@ import edu.evolution.varanovich.anki.db.DbManager
 import edu.evolution.varanovich.anki.db.program.entity.AnswerInfoProgram
 import edu.evolution.varanovich.anki.db.program.entity.CardProgram.{readCardIdByDeckIdAndContent, readCardInfoListWithInsufficientAnswer, readCardInfoWithSlowestSufficientAnswer}
 import edu.evolution.varanovich.anki.db.program.entity.DeckProgram.{readDeckIdByDescriptionAndUserName, readDeckIdListByUserName}
+import edu.evolution.varanovich.anki.model.{AnswerInfo, Card}
 import edu.evolution.varanovich.anki.utility.StringUtility.matches
 import io.circe.generic.codec.DerivedAsObjectCodec.deriveCodec
 import io.circe.parser.decode

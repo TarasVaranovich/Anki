@@ -1,8 +1,8 @@
 package edu.evolution.varanovich.anki.client
 
 import cats.effect.IO
-import edu.evolution.varanovich.anki.adt.{AnswerInfo, Card}
 import edu.evolution.varanovich.anki.api.http.protocol.AnkiRequest.{AnkiGenericRequest, CreateAnswerInfoRequest, DeckRequest, UserRequest}
+import edu.evolution.varanovich.anki.model.{AnswerInfo, Card}
 import io.circe.generic.codec.DerivedAsObjectCodec.deriveCodec
 import org.http4s.circe.CirceEntityCodec.circeEntityEncoder
 import org.http4s.{Header, Method, Request}

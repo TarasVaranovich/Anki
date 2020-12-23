@@ -4,7 +4,7 @@ import cats.effect.IO
 import cats.effect.testing.scalatest.AsyncIOSpec
 import cats.implicits._
 import doobie.implicits._
-import edu.evolution.varanovich.anki.adt.{AnswerInfo, Rate}
+import edu.evolution.varanovich.anki.model.{AnswerInfo, Rate}
 import edu.evolution.varanovich.anki.db.DbManager
 import edu.evolution.varanovich.anki.db.program.domain.ServiceProgram.{dropTable, dropType}
 import edu.evolution.varanovich.anki.db.program.entity.AnswerInfoProgram.{createAnswerInfo, createAnswerInfoTable, readAnswerInfoList}

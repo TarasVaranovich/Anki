@@ -1,4 +1,4 @@
-package edu.evolution.varanovich.anki.adt
+package edu.evolution.varanovich.anki.model
 
 import doobie.Meta
 import doobie.postgres.implicits.pgEnumStringOpt

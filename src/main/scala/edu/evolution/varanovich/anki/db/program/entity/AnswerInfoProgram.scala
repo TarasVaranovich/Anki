@@ -1,7 +1,7 @@
 package edu.evolution.varanovich.anki.db.program.entity
 
 import doobie.{ConnectionIO, Fragment}
-import edu.evolution.varanovich.anki.adt.AnswerInfo
+import edu.evolution.varanovich.anki.model.AnswerInfo
 
 object AnswerInfoProgram {
   val createAnswerInfoTable: ConnectionIO[Int] = {

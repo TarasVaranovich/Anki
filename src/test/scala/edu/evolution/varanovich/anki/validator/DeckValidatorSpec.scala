@@ -1,6 +1,6 @@
 package edu.evolution.varanovich.anki.validator
 
-import edu.evolution.varanovich.anki.adt.{Card, Deck}
+import edu.evolution.varanovich.anki.model.{Card, Deck}
 import edu.evolution.varanovich.anki.cardListOpt
 import edu.evolution.varanovich.anki.utility.WordValidator.validTranscription
 import edu.evolution.varanovich.anki.validator.UserValidator.AllErrorsOr

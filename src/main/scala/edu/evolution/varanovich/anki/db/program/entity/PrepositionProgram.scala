@@ -1,7 +1,7 @@
 package edu.evolution.varanovich.anki.db.program.entity
 
 import doobie.{ConnectionIO, Fragment, Update}
-import edu.evolution.varanovich.anki.adt.PartOfSpeech.Preposition
+import edu.evolution.varanovich.anki.model.PartOfSpeech.Preposition
 import edu.evolution.varanovich.anki.utility.VocabularyConfig.{MaxEngWordLength, MaxRusWordLength}
 
 object PrepositionProgram {

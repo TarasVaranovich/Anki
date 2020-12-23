@@ -2,7 +2,7 @@ package edu.evolution.varanovich.anki.validator
 
 import cats.data.ValidatedNec
 import cats.implicits.{catsSyntaxTuple2Semigroupal, catsSyntaxValidatedIdBinCompat0}
-import edu.evolution.varanovich.anki.adt.{Card, Deck, NotDefined}
+import edu.evolution.varanovich.anki.model.{Card, Deck, NotDefined}
 import edu.evolution.varanovich.anki.utility.AnkiConfig.{MaxDeckDescriptionLength, MaxDeckLength, MinDeckDescriptionLength, MinDeckLength}
 import edu.evolution.varanovich.anki.utility.WordValidator
 import edu.evolution.varanovich.anki.utility.WordValidator.{validPhrase, validTranscription, validTranslation, validValue}

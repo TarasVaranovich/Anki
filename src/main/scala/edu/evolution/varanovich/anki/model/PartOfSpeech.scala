@@ -1,6 +1,6 @@
-package edu.evolution.varanovich.anki.adt
+package edu.evolution.varanovich.anki.model
 
-import edu.evolution.varanovich.anki.adt.PartOfSpeech._
+import PartOfSpeech._
 import edu.evolution.varanovich.anki.utility.WordValidator._
 
 sealed trait PartOfSpeech extends Ordered[PartOfSpeech] {

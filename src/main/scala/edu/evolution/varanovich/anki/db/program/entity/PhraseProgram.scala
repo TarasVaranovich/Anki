@@ -1,7 +1,7 @@
 package edu.evolution.varanovich.anki.db.program.entity
 
 import doobie.{ConnectionIO, Fragment, Update}
-import edu.evolution.varanovich.anki.adt.PartOfSpeech.Phrase
+import edu.evolution.varanovich.anki.model.PartOfSpeech.Phrase
 import edu.evolution.varanovich.anki.utility.VocabularyConfig.MaxPhraseLength
 
 object PhraseProgram {

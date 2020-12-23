@@ -1,4 +1,4 @@
-package edu.evolution.varanovich.anki.adt
+package edu.evolution.varanovich.anki.model
 
 import edu.evolution.varanovich.anki._
 import org.scalatest.flatspec.AnyFlatSpec

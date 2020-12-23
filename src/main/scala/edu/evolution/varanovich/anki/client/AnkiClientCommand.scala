@@ -2,12 +2,12 @@ package edu.evolution.varanovich.anki.client
 
 import cats.effect.IO
 import cats.effect.IO.ioEffect
-import edu.evolution.varanovich.anki.adt.Rate.{Easy, Fail, Good, Hard}
-import edu.evolution.varanovich.anki.adt.{AnswerInfo, Card, Rate}
+import edu.evolution.varanovich.anki.model.Rate.{Easy, Fail, Good, Hard}
 import edu.evolution.varanovich.anki.api.http.protocol.AnkiResponse
 import edu.evolution.varanovich.anki.api.http.protocol.AnkiResponse.{AnkiGenericResponse, CardsForImproveResponse, DeckResponse, ErrorResponse, MultiErrorResponse, UserResponse}
 import edu.evolution.varanovich.anki.client.AnkiClient.process
 import edu.evolution.varanovich.anki.client.AnkiHttpRequest._
+import edu.evolution.varanovich.anki.model.{AnswerInfo, Card, Rate}
 import org.http4s.circe.CirceEntityCodec.circeEntityDecoder
 import org.http4s.client.Client
 

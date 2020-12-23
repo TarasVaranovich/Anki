@@ -2,7 +2,6 @@ package edu.evolution.varanovich.anki.api.http.dispatcher
 
 import cats.effect.{ContextShift, IO}
 import doobie.implicits._
-import edu.evolution.varanovich.anki.adt.User
 import edu.evolution.varanovich.anki.api.http.AnkiErrorCode._
 import edu.evolution.varanovich.anki.api.http.AnkiServer._
 import edu.evolution.varanovich.anki.api.http.protocol.AnkiRequest.UserRequest
@@ -11,6 +10,7 @@ import edu.evolution.varanovich.anki.api.session.Session.Cache
 import edu.evolution.varanovich.anki.api.session.UserSession
 import edu.evolution.varanovich.anki.db.DbManager
 import edu.evolution.varanovich.anki.db.program.entity.UserProgram._
+import edu.evolution.varanovich.anki.model.User
 import edu.evolution.varanovich.anki.utility.CryptoUtility.{encryptSHA256, generateToken}
 import edu.evolution.varanovich.anki.validator.UserValidator
 import io.circe.generic.codec.DerivedAsObjectCodec.deriveCodec

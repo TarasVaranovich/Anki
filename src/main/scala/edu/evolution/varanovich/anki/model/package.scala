@@ -1,5 +1,5 @@
 package edu.evolution.varanovich.anki
 
-package object adt {
+package object model {
   val NotDefined: String = "Not Defined"
 }

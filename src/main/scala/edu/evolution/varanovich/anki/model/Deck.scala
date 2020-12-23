@@ -1,4 +1,4 @@
-package edu.evolution.varanovich.anki.adt
+package edu.evolution.varanovich.anki.model
 
 final case class Deck private(cards: Set[Card], description: String) {
   override def equals(that: Any): Boolean = that match {

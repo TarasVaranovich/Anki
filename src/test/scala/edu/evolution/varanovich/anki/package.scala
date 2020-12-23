@@ -1,7 +1,7 @@
 package edu.evolution.varanovich
 
-import edu.evolution.varanovich.anki.adt.PartOfSpeech._
-import edu.evolution.varanovich.anki.adt.{Card, Deck, Privileges, User}
+import edu.evolution.varanovich.anki.model.PartOfSpeech._
+import edu.evolution.varanovich.anki.model.{Card, Deck, Privileges, User}
 import edu.evolution.varanovich.anki.domain.DeckBuilder.GeneratedDeckName
 
 package object anki {

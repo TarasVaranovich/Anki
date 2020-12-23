@@ -1,6 +1,6 @@
 package edu.evolution.varanovich.anki.file
 
-import edu.evolution.varanovich.anki.adt.PartOfSpeech._
+import edu.evolution.varanovich.anki.model.PartOfSpeech._
 
 object DataParser {
   val adjective: (List[String] => Option[Adjective]) = (parts: List[String]) =>

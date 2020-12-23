@@ -1,7 +1,7 @@
 package edu.evolution.varanovich.anki.db.program.entity
 
 import doobie.{ConnectionIO, Fragment, Update}
-import edu.evolution.varanovich.anki.adt.Card
+import edu.evolution.varanovich.anki.model.Card
 import edu.evolution.varanovich.anki.utility.AnkiConfig.MaxCardFieldLength
 
 object CardProgram {

@@ -1,7 +1,7 @@
 package edu.evolution.varanovich.anki.db.program.entity
 
 import doobie.{ConnectionIO, Fragment}
-import edu.evolution.varanovich.anki.adt.Deck
+import edu.evolution.varanovich.anki.model.Deck
 import edu.evolution.varanovich.anki.utility.AnkiConfig.MaxDeckDescriptionLength
 
 object DeckProgram {

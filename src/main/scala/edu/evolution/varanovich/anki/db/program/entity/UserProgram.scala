@@ -4,7 +4,7 @@ import java.util.UUID
 
 import doobie.ConnectionIO
 import doobie.util.fragment.Fragment
-import edu.evolution.varanovich.anki.adt.User
+import edu.evolution.varanovich.anki.model.User
 import edu.evolution.varanovich.anki.utility.AnkiConfig.{MaxPasswordEncryptedLength, MaxUserNameLength}
 import edu.evolution.varanovich.anki.utility.CryptoUtility.encryptSHA256
 

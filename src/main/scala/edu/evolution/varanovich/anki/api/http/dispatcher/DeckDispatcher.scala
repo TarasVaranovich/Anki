@@ -3,7 +3,6 @@ package edu.evolution.varanovich.anki.api.http.dispatcher
 import cats.effect.{ContextShift, IO}
 import cats.implicits.catsSyntaxApply
 import doobie.implicits._
-import edu.evolution.varanovich.anki.adt._
 import edu.evolution.varanovich.anki.api.http.AnkiErrorCode._
 import edu.evolution.varanovich.anki.api.http.AnkiServer.ServerErrorResponse
 import edu.evolution.varanovich.anki.api.http.dispatcher.DispatcherUtility.executeAuthenticated
@@ -17,6 +16,7 @@ import edu.evolution.varanovich.anki.db.program.entity.DeckProgram._
 import edu.evolution.varanovich.anki.db.program.entity.UserProgram.readSequentialId
 import edu.evolution.varanovich.anki.domain.DeckBuilder
 import edu.evolution.varanovich.anki.domain.DeckBuilder.GeneratedDeckName
+import edu.evolution.varanovich.anki.model.Deck
 import edu.evolution.varanovich.anki.utility.AnkiConfig.{MaxDeckLength, MinDeckLength}
 import edu.evolution.varanovich.anki.utility.StringUtility.matches
 import edu.evolution.varanovich.anki.validator.DeckValidator
