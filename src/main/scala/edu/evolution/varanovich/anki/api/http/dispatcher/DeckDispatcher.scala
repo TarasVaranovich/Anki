@@ -18,7 +18,6 @@ import edu.evolution.varanovich.anki.domain.DeckBuilder
 import edu.evolution.varanovich.anki.domain.DeckBuilder.GeneratedDeckName
 import edu.evolution.varanovich.anki.model.Deck
 import edu.evolution.varanovich.anki.utility.AnkiConfig.{MaxDeckLength, MinDeckLength}
-import edu.evolution.varanovich.anki.utility.StringUtility.matches
 import edu.evolution.varanovich.anki.validator.DeckValidator
 import io.circe.generic.codec.DerivedAsObjectCodec.deriveCodec
 import io.circe.parser.decode
@@ -31,7 +30,7 @@ object DeckDispatcher {
   def doRandom(size: String,
                request: Request[IO], cache: Cache[IO, String, UserSession])(implicit contextShift: ContextShift[IO]):
   IO[Response[IO]] = {
-    if (matches(size, "^[0-9]*$".r)) {
+    if (size.matches("^[0-9]*$")) {
       val generateDeck: (Int) => (String) => IO[Response[IO]] = (sizeInt: Int) => (userId: String) =>
         for {
           deckOpt <- DeckBuilder.randomDeck(sizeInt)

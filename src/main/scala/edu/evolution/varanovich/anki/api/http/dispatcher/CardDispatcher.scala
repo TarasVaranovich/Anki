@@ -13,10 +13,9 @@ import edu.evolution.varanovich.anki.api.session.Session.Cache
 import edu.evolution.varanovich.anki.api.session.UserSession
 import edu.evolution.varanovich.anki.db.DbManager
 import edu.evolution.varanovich.anki.db.program.entity.AnswerInfoProgram
-import edu.evolution.varanovich.anki.db.program.entity.CardProgram.{readCardIdByDeckIdAndContent, readCardInfoListWithInsufficientAnswer, readCardInfoWithSlowestSufficientAnswer}
-import edu.evolution.varanovich.anki.db.program.entity.DeckProgram.{readDeckIdByDescriptionAndUserName, readDeckIdListByUserName}
+import edu.evolution.varanovich.anki.db.program.entity.CardProgram._
+import edu.evolution.varanovich.anki.db.program.entity.DeckProgram._
 import edu.evolution.varanovich.anki.model.{AnswerInfo, Card}
-import edu.evolution.varanovich.anki.utility.StringUtility.matches
 import io.circe.generic.codec.DerivedAsObjectCodec.deriveCodec
 import io.circe.parser.decode
 import org.http4s.circe.CirceEntityCodec.circeEntityEncoder
@@ -87,7 +86,7 @@ object CardDispatcher {
   def doCardsForImprove(request: Request[IO],
                         cache: Cache[IO, String, UserSession],
                         limit: String)(implicit contextShift: ContextShift[IO]): IO[Response[IO]] = {
-    if (matches(limit, "^[0-9]*$".r)) {
+    if (limit.matches("^[0-9]*$")) {
       val selectCardsForImprove: String => IO[Response[IO]] = (userId: String) =>
         for {
           userNameOpt <- cache.get(userId).map(_.map(_.userName))
