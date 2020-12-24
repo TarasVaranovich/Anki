@@ -5,7 +5,7 @@ import edu.evolution.varanovich.anki.model.PartOfSpeech.Noun
 import edu.evolution.varanovich.anki.utility.VocabularyConfig.{MaxEngWordLength, MaxRusWordLength}
 
 object NounProgram {
-  val createNounTable: ConnectionIO[Int] = {
+  def createNounTable: ConnectionIO[Int] = {
     val query: String =
       s"""CREATE TABLE noun(
          |id SERIAL PRIMARY KEY,
@@ -16,7 +16,7 @@ object NounProgram {
     Fragment.const(query).update.run
   }
 
-  val createNoun: Noun => ConnectionIO[Int] = (noun: Noun) => {
+  def createNoun(noun: Noun): ConnectionIO[Int] = {
     val query: String =
       s"""INSERT INTO noun(
          |value,
@@ -30,7 +30,7 @@ object NounProgram {
     Fragment.const(query).update.run
   }
 
-  val createNounListSafely: (List[Noun]) => ConnectionIO[Int] = (nouns: List[Noun]) => {
+  def createNounListSafely(nouns: List[Noun]): ConnectionIO[Int] = {
     val query: String =
       s"""INSERT INTO noun(
          |value,
@@ -41,7 +41,7 @@ object NounProgram {
     Update[Noun](query).updateMany(nouns)
   }
 
-  val readNoun: String => ConnectionIO[Option[Noun]] = (value: String) => {
+  def readNoun(value: String): ConnectionIO[Option[Noun]] = {
     val query: String =
       s"""SELECT
          |value,
@@ -52,7 +52,7 @@ object NounProgram {
     Fragment.const(query).query[Noun].option
   }
 
-  val readNounById: Int => ConnectionIO[Option[Noun]] = (id: Int) => {
+  def readNounById(id: Int): ConnectionIO[Option[Noun]] = {
     val query: String =
       s"""SELECT
          |value,
@@ -63,7 +63,7 @@ object NounProgram {
     Fragment.const(query).query[Noun].option
   }
 
-  val readAllNouns: ConnectionIO[List[Noun]] = {
+  def readAllNouns: ConnectionIO[List[Noun]] = {
     val query: String =
       s"""SELECT
          |value,
@@ -74,7 +74,7 @@ object NounProgram {
     Fragment.const(query).query[Noun].to[List]
   }
 
-  val updateNoun: Noun => ConnectionIO[Int] = (noun: Noun) => {
+  def updateNoun(noun: Noun): ConnectionIO[Int] = {
     val query: String =
       s"""UPDATE noun SET
          |translation = '${noun.translation}',
@@ -84,7 +84,7 @@ object NounProgram {
     Fragment.const(query).update.run
   }
 
-  val deleteNoun: Noun => ConnectionIO[Int] = (noun: Noun) => {
+  def deleteNoun(noun: Noun): ConnectionIO[Int] = {
     val query: String = s"DELETE FROM noun WHERE value = '${noun.value}'"
     Fragment.const(query).update.run
   }

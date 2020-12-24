@@ -9,7 +9,7 @@ import edu.evolution.varanovich.anki.utility.AnkiConfig.{MaxPasswordEncryptedLen
 import edu.evolution.varanovich.anki.utility.CryptoUtility.encryptSHA256
 
 object UserProgram {
-  val createUserTable: ConnectionIO[Int] = {
+  def createUserTable: ConnectionIO[Int] = {
     val query: String =
       s"""CREATE TYPE privileges_enum AS ENUM ('Admin', 'Member');
          |CREATE TABLE anki_user(
@@ -22,7 +22,7 @@ object UserProgram {
     Fragment.const(query).update.run
   }
 
-  val createUser: User => ConnectionIO[Int] = (user: User) => {
+  def createUser(user: User): ConnectionIO[Int] = {
     val query: String =
       s"""INSERT INTO anki_user(
          |id,
@@ -36,7 +36,7 @@ object UserProgram {
     Fragment.const(query).update.run
   }
 
-  val readUser: String => ConnectionIO[Option[User]] = (name: String) => {
+  def readUser(name: String): ConnectionIO[Option[User]] = {
     val query: String =
       s"""SELECT
          |name,
@@ -46,22 +46,22 @@ object UserProgram {
     Fragment.const(query).query[User].option
   }
 
-  val readPassword: String => ConnectionIO[Option[String]] = (name: String) => {
+  def readPassword(name: String): ConnectionIO[Option[String]] = {
     val query: String = s"SELECT password FROM anki_user WHERE name = '$name'"
     Fragment.const(query).query[String].option
   }
 
-  val readSequentialId: String => ConnectionIO[Option[Int]] = (name: String) => {
+  def readSequentialId(name: String): ConnectionIO[Option[Int]] = {
     val query: String = s"SELECT id_sequential FROM anki_user WHERE name = '$name'".stripMargin
     Fragment.const(query).query[Int].option
   }
 
-  val readUserId: String => ConnectionIO[Option[String]] = (name: String) => {
+  def readUserId(name: String): ConnectionIO[Option[String]] = {
     val query: String = s"SELECT id FROM anki_user WHERE name = '$name'".stripMargin
     Fragment.const(query).query[String].option
   }
 
-  val isLockedUser: User => ConnectionIO[Boolean] = (user: User) => {
+  def isLockedUser(user: User): ConnectionIO[Boolean] = {
     val query: String = s"SELECT locked FROM anki_user WHERE name = '${user.name}'".stripMargin
     Fragment.const(query).query[Boolean].option.map {
       case Some(locked) => locked
@@ -69,17 +69,17 @@ object UserProgram {
     }
   }
 
-  val lockUser: String => ConnectionIO[Int] = (id: String) => {
+  def lockUser(id: String): ConnectionIO[Int] = {
     val query: String = s"UPDATE anki_user SET locked = TRUE WHERE id = '$id'"
     Fragment.const(query).update.run
   }
 
-  val unlockUser: String => ConnectionIO[Int] = (id: String) => {
+  def unlockUser(id: String): ConnectionIO[Int] = {
     val query: String = s"UPDATE anki_user SET locked = FALSE WHERE id = '$id'"
     Fragment.const(query).update.run
   }
 
-  val updateUser: User => ConnectionIO[Int] = (user: User) => {
+  def updateUser(user: User): ConnectionIO[Int] = {
     val query: String =
       s"""UPDATE anki_user SET
          |password = '${encryptSHA256(user.password)}',
@@ -88,7 +88,7 @@ object UserProgram {
     Fragment.const(query).update.run
   }
 
-  val deleteUser: User => ConnectionIO[Int] = (user: User) => {
+  def deleteUser(user: User): ConnectionIO[Int] = {
     val query: String = s"DELETE FROM anki_user WHERE name = '${user.name}'"
     Fragment.const(query).update.run
   }

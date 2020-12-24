@@ -5,7 +5,7 @@ import edu.evolution.varanovich.anki.model.PartOfSpeech.Verb
 import edu.evolution.varanovich.anki.utility.VocabularyConfig.{MaxEngWordLength, MaxRusWordLength}
 
 object VerbProgram {
-  val createVerbTable: ConnectionIO[Int] = {
+  def createVerbTable: ConnectionIO[Int] = {
     val query: String =
       s"""CREATE TABLE verb(
          |id SERIAL PRIMARY KEY,
@@ -18,7 +18,7 @@ object VerbProgram {
     Fragment.const(query).update.run
   }
 
-  val createVerb: Verb => ConnectionIO[Int] = (verb: Verb) => {
+  def createVerb(verb: Verb): ConnectionIO[Int] = {
     val query: String =
       s"""INSERT INTO verb(
          |value,
@@ -36,7 +36,7 @@ object VerbProgram {
     Fragment.const(query).update.run
   }
 
-  val createVerbListSafely: (List[Verb]) => ConnectionIO[Int] = (verbs: List[Verb]) => {
+  def createVerbListSafely(verbs: List[Verb]): ConnectionIO[Int] = {
     val query: String =
       s"""INSERT INTO verb(
          |value,
@@ -49,7 +49,7 @@ object VerbProgram {
     Update[Verb](query).updateMany(verbs)
   }
 
-  val readVerb: String => ConnectionIO[Option[Verb]] = (value: String) => {
+  def readVerb(value: String): ConnectionIO[Option[Verb]] = {
     val query: String =
       s"""SELECT
          |value,
@@ -62,7 +62,7 @@ object VerbProgram {
     Fragment.const(query).query[Verb].option
   }
 
-  val readVerbById: Int => ConnectionIO[Option[Verb]] = (id: Int) => {
+  def readVerbById(id: Int): ConnectionIO[Option[Verb]] = {
     val query: String =
       s"""SELECT
          |value,
@@ -75,7 +75,7 @@ object VerbProgram {
     Fragment.const(query).query[Verb].option
   }
 
-  val readAllVerbs: ConnectionIO[List[Verb]] = {
+  def readAllVerbs: ConnectionIO[List[Verb]] = {
     val query: String =
       s"""SELECT
          |value,
@@ -88,7 +88,7 @@ object VerbProgram {
     Fragment.const(query).query[Verb].to[List]
   }
 
-  val updateVerb: Verb => ConnectionIO[Int] = (verb: Verb) => {
+  def updateVerb(verb: Verb): ConnectionIO[Int] = {
     val query: String =
       s"""UPDATE verb SET
          |translation = '${verb.translation}',
@@ -100,7 +100,7 @@ object VerbProgram {
     Fragment.const(query).update.run
   }
 
-  val deleteVerb: Verb => ConnectionIO[Int] = (verb: Verb) => {
+  def deleteVerb(verb: Verb): ConnectionIO[Int] = {
     val query: String = s"DELETE FROM verb WHERE value = '${verb.value}'"
     Fragment.const(query).update.run
   }

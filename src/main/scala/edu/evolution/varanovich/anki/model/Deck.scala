@@ -7,8 +7,6 @@ final case class Deck private(cards: Set[Card], description: String) {
   }
 }
 object Deck {
-  def from(cards: Set[Card], description: String): Option[Deck] = {
-    if (cards.nonEmpty && description.nonEmpty && !description.isBlank)
-      Some(Deck(cards, description)) else None
-  }
+  def from(cards: Set[Card], description: String): Option[Deck] =
+    if (cards.nonEmpty && description.nonEmpty && !description.isBlank) Some(Deck(cards, description)) else None
 }

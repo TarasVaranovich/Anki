@@ -4,7 +4,7 @@ import doobie.{ConnectionIO, Fragment}
 import edu.evolution.varanovich.anki.model.AnswerInfo
 
 object AnswerInfoProgram {
-  val createAnswerInfoTable: ConnectionIO[Int] = {
+  def createAnswerInfoTable: ConnectionIO[Int] = {
     val query: String =
       s"""CREATE TYPE rate_enum AS ENUM ('Fail', 'Hard', 'Good', 'Easy');
          |CREATE TABLE answer_info(
@@ -15,7 +15,7 @@ object AnswerInfoProgram {
     Fragment.const(query).update.run
   }
 
-  val createAnswerInfo: (AnswerInfo, Int) => ConnectionIO[Int] = (info: AnswerInfo, cardId: Int) => {
+  def createAnswerInfo(info: AnswerInfo, cardId: Int): ConnectionIO[Int] = {
     val query: String =
       s"""INSERT INTO answer_info(
          |card_id,
@@ -27,7 +27,7 @@ object AnswerInfoProgram {
     Fragment.const(query).update.run
   }
 
-  val readAnswerInfoList: (Int) => ConnectionIO[List[AnswerInfo]] = (cardId: Int) => {
+  def readAnswerInfoList(cardId: Int): ConnectionIO[List[AnswerInfo]] = {
     val query: String = s"SELECT rate, duration_sec FROM answer_info WHERE card_id = '$cardId'"
     Fragment.const(query).query[AnswerInfo].to[List]
   }

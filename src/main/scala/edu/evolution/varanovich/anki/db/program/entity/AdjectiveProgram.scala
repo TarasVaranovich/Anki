@@ -5,7 +5,7 @@ import edu.evolution.varanovich.anki.model.PartOfSpeech.Adjective
 import edu.evolution.varanovich.anki.utility.VocabularyConfig.{MaxEngWordLength, MaxRusWordLength}
 
 object AdjectiveProgram {
-  val createAdjectiveTable: ConnectionIO[Int] = {
+  def createAdjectiveTable: ConnectionIO[Int] = {
     val query: String =
       s"""CREATE TABLE adjective(
          |id SERIAL PRIMARY KEY,
@@ -17,7 +17,7 @@ object AdjectiveProgram {
     Fragment.const(query).update.run
   }
 
-  val createAdjective: Adjective => ConnectionIO[Int] = (adjective: Adjective) => {
+  def createAdjective(adjective: Adjective): ConnectionIO[Int] = {
     val query: String =
       s"""INSERT INTO adjective(
          |value,
@@ -33,7 +33,7 @@ object AdjectiveProgram {
     Fragment.const(query).update.run
   }
 
-  val createAdjectiveListSafely: (List[Adjective]) => ConnectionIO[Int] = (adjectives: List[Adjective]) => {
+  def createAdjectiveListSafely(adjectives: List[Adjective]): ConnectionIO[Int] = {
     val query: String =
       s"""INSERT INTO adjective(
          |value,
@@ -45,7 +45,7 @@ object AdjectiveProgram {
     Update[Adjective](query).updateMany(adjectives)
   }
 
-  val readAdjective: String => ConnectionIO[Option[Adjective]] = (value: String) => {
+  def readAdjective(value: String): ConnectionIO[Option[Adjective]] = {
     val query: String =
       s"""SELECT
          |value,
@@ -57,7 +57,7 @@ object AdjectiveProgram {
     Fragment.const(query).query[Adjective].option
   }
 
-  val readAdjectiveById: Int => ConnectionIO[Option[Adjective]] = (id: Int) => {
+  def readAdjectiveById(id: Int): ConnectionIO[Option[Adjective]] = {
     val query: String =
       s"""SELECT
          |value,
@@ -69,7 +69,7 @@ object AdjectiveProgram {
     Fragment.const(query).query[Adjective].option
   }
 
-  val readAllAdjectives: ConnectionIO[List[Adjective]] = {
+  def readAllAdjectives: ConnectionIO[List[Adjective]] = {
     val query: String =
       s"""SELECT
          |value,
@@ -81,7 +81,7 @@ object AdjectiveProgram {
     Fragment.const(query).query[Adjective].to[List]
   }
 
-  val updateAdjective: Adjective => ConnectionIO[Int] = (adjective: Adjective) => {
+  def updateAdjective(adjective: Adjective): ConnectionIO[Int] = {
     val query: String =
       s"""UPDATE adjective SET
          |translation = '${adjective.translation}',
@@ -92,7 +92,7 @@ object AdjectiveProgram {
     Fragment.const(query).update.run
   }
 
-  val deleteAdjective: Adjective => ConnectionIO[Int] = (adjective: Adjective) => {
+  def deleteAdjective(adjective: Adjective): ConnectionIO[Int] = {
     val query: String = s"DELETE FROM adjective WHERE value = '${adjective.value}'"
     Fragment.const(query).update.run
   }
