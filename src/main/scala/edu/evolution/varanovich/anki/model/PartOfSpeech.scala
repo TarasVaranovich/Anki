@@ -28,8 +28,8 @@ object PartOfSpeech {
     def from(value: String, translation: String, transcription: String, comparative: String,
              superlative: String): Option[Adjective] =
       if (validValue(value) && validTranslation(translation) && validTranscription(transcription) &&
-        validOptionalValue(define(comparative)) && validOptionalValue(define(superlative)))
-        Some(Adjective(value, translation, transcription, define(comparative), define(superlative))) else None
+        validOptionalValue(comparative) && validOptionalValue(superlative))
+        Some(Adjective(value, translation, transcription, comparative, superlative)) else None
   }
 
   final case class Noun private(value: String, translation: String, transcription: String, plural: String)
@@ -37,8 +37,8 @@ object PartOfSpeech {
   object Noun {
     def from(value: String, translation: String, transcription: String, plural: String): Option[Noun] =
       if (validNoun(value) && validTranslation(translation) && validTranscription(transcription) &&
-        validOptionalValue(define(plural)))
-        Some(Noun(value, translation, transcription, define(plural))) else None
+        validOptionalValue(plural))
+        Some(Noun(value, translation, transcription, plural)) else None
   }
 
   final case class Phrase private(value: String, translation: String) extends PartOfSpeech(value)
@@ -61,11 +61,7 @@ object PartOfSpeech {
     def from(value: String, translation: String, transcription: String, thirdPerson: String,
              presentParticiple: String, pastParticiple: String): Option[Verb] =
       if (validValue(value) && validTranslation(translation) && validTranscription(transcription) &&
-        validOptionalValue(define(thirdPerson)) && validOptionalValue(define(presentParticiple)) &&
-        validOptionalValue(define(pastParticiple)))
-        Some(Verb(value, translation, transcription,
-          define(thirdPerson), define(presentParticiple), define(pastParticiple))) else None
+        validOptionalValue(thirdPerson) && validOptionalValue(presentParticiple) && validOptionalValue(pastParticiple))
+        Some(Verb(value, translation, transcription, thirdPerson, presentParticiple, pastParticiple)) else None
   }
-
-  private val define: String => String = (value: String) => if (value.isEmpty || value.isBlank) NotDefined else value
 }

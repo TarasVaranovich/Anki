@@ -23,8 +23,6 @@ package object anki {
   val coastNounModifiedOpt: Option[Noun] =
     Noun.from("coast", "побережье, берег", "[kəust]", "coasts")
   val glassesNounOpt: Option[Noun] = Noun.from("glasses", "очки", "[ɡlɑ:siz]", "")
-  val glassesNounWithGapsOpt: Option[Noun] =
-    Noun.from("glasses", "очки", "[ɡlɑ:siz]", "     ")
 
   //PHRASES
   val howAreYouPhraseOpt: Option[Phrase] = Phrase.from("How are you?", "Как дела?")

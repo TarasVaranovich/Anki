@@ -14,7 +14,7 @@ object WordValidator {
    * Value string can contain english letters from english ABC with possible hyphen or gap between
    */
   def validOptionalValue(value: String): Boolean =
-    matches(value, "^[A-Za-z]+[\\-\\s]?[A-Za-z]+$".r) && (value.length <= MaxEngWordLength)
+    value.isEmpty || (matches(value, "^[A-Za-z]+[\\-\\s]?[A-Za-z]+$".r) && (value.length <= MaxEngWordLength))
 
   /**
    * Value string can contain letters from english ABC only with possible hyphen

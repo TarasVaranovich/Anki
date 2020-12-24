@@ -2,10 +2,10 @@ package edu.evolution.varanovich.anki.validator
 
 import cats.data.ValidatedNec
 import cats.implicits.{catsSyntaxTuple2Semigroupal, catsSyntaxValidatedIdBinCompat0}
-import edu.evolution.varanovich.anki.model.{Card, Deck, NotDefined}
+import edu.evolution.varanovich.anki.model.{Card, Deck}
 import edu.evolution.varanovich.anki.utility.AnkiConfig.{MaxDeckDescriptionLength, MaxDeckLength, MinDeckDescriptionLength, MinDeckLength}
 import edu.evolution.varanovich.anki.utility.WordValidator
-import edu.evolution.varanovich.anki.utility.WordValidator.{validPhrase, validTranscription, validTranslation, validValue}
+import edu.evolution.varanovich.anki.utility.WordValidator.{validOptionalValue, validPhrase, validTranscription, validTranslation, validValue}
 
 object DeckValidator {
   case object DeckLengthError extends ValidationError {
@@ -39,7 +39,7 @@ object DeckValidator {
   private def validateDeckCards(cards: List[Card]): AllErrorsOr[List[Card]] = {
     val validateCardField: String => Boolean = (field: String) =>
       validPhrase(field) || validTranslation(field) || field.split("/")
-        .forall(part => validTranscription(part) || validValue(part) || (part == NotDefined))
+        .forall(part => validTranscription(part) || validValue(part) || validOptionalValue(part))
     val validCards = cards
       .filter(card => validateCardField(card.question) && validateCardField(card.answer))
     if (validCards.size == cards.size) cards.validNec else DeckCardError.invalidNec

@@ -55,8 +55,4 @@ class PartOfSpeechSpec extends AnyFlatSpec {
   "Noun" should "be init successfully with empty plural" in {
     assert(glassesNounOpt.isDefined)
   }
-
-  "Noun" should "be init successfully with spaced plural" in {
-    assert(glassesNounWithGapsOpt.isDefined)
-  }
 }
