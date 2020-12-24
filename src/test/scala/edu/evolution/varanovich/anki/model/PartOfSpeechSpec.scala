@@ -45,7 +45,7 @@ class PartOfSpeechSpec extends AnyFlatSpec {
       word <- words
       value <- word
     } yield value
-    assert(values.sorted.map(_.getValue) == List("above", "big", "clumsy", "coast", "consist", "high", "How are you?"))
+    assert(values.sorted.map(_.getValue) == List("How are you?", "above", "big", "clumsy", "coast", "consist", "high"))
   }
 
   "Preposition" should "be init successfully with multi-translation" in {

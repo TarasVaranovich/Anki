@@ -1,31 +1,29 @@
 package edu.evolution.varanovich.anki.model
 
-import PartOfSpeech._
 import edu.evolution.varanovich.anki.utility.WordValidator._
 
-sealed trait PartOfSpeech extends Ordered[PartOfSpeech] {
-  def getValue: String
+/**
+ * Class represents part of speech.
+ * Each part of speech is defined by it's value and type cause
+ * equal part's of speech can have synonym translation.
+ *
+ * Parts of speech sorted relatively each other by value case insensitive according
+ * to common grammatical words rules.
+ */
+abstract class PartOfSpeech(value: String) extends Ordered[PartOfSpeech] {
+  def getValue: String = this.value
 
-  protected def isEqual(self: PartOfSpeech, that: Any): Boolean = (self, that) match {
-    case (self: Adjective, that: Adjective) => self.value == that.value
-    case (self: Noun, that: Noun) => self.value == that.value
-    case (self: Phrase, that: Phrase) => self.value == that.value
-    case (self: Preposition, that: Preposition) => self.value == that.value
-    case (self: Verb, that: Verb) => self.value == that.value
+  override def compare(that: PartOfSpeech): Int = this.getValue.compare(that.getValue)
+
+  override def equals(that: Any): Boolean = that match {
+    case partOfSpeech: PartOfSpeech => partOfSpeech.getValue == this.getValue
     case _ => false
   }
-
-  protected def compareByValue(self: PartOfSpeech, that: PartOfSpeech): Int =
-    self.getValue.compareToIgnoreCase(that.getValue)
 }
 
 object PartOfSpeech {
   final case class Adjective private(value: String, translation: String, transcription: String, comparative: String,
-                                     superlative: String) extends PartOfSpeech {
-    override def getValue: String = value
-    override def equals(that: Any): Boolean = isEqual(this, that)
-    override def compare(that: PartOfSpeech): Int = compareByValue(this, that)
-  }
+                                     superlative: String) extends PartOfSpeech(value)
   object Adjective {
     def from(value: String, translation: String, transcription: String, comparative: String,
              superlative: String): Option[Adjective] =
@@ -35,11 +33,7 @@ object PartOfSpeech {
   }
 
   final case class Noun private(value: String, translation: String, transcription: String, plural: String)
-    extends PartOfSpeech {
-    override def getValue: String = value
-    override def equals(that: Any): Boolean = isEqual(this, that)
-    override def compare(that: PartOfSpeech): Int = compareByValue(this, that)
-  }
+    extends PartOfSpeech(value)
   object Noun {
     def from(value: String, translation: String, transcription: String, plural: String): Option[Noun] =
       if (validNoun(value) && validTranslation(translation) && validTranscription(transcription) &&
@@ -47,21 +41,14 @@ object PartOfSpeech {
         Some(Noun(value, translation, transcription, define(plural))) else None
   }
 
-  final case class Phrase private(value: String, translation: String) extends PartOfSpeech {
-    override def getValue: String = value
-    override def equals(that: Any): Boolean = isEqual(this, that)
-    override def compare(that: PartOfSpeech): Int = compareByValue(this, that)
-  }
+  final case class Phrase private(value: String, translation: String) extends PartOfSpeech(value)
   object Phrase {
     def from(value: String, translation: String): Option[Phrase] =
       if (validPhrase(value) && validPhrase(translation)) Some(Phrase(value, translation)) else None
   }
 
-  final case class Preposition private(value: String, translation: String, transcription: String) extends PartOfSpeech {
-    override def getValue: String = value
-    override def equals(that: Any): Boolean = isEqual(this, that)
-    override def compare(that: PartOfSpeech): Int = compareByValue(this, that)
-  }
+  final case class Preposition private(value: String, translation: String, transcription: String)
+    extends PartOfSpeech(value)
   object Preposition {
     def from(value: String, translation: String, transcription: String): Option[Preposition] =
       if (validValue(value) && validTranslation(translation) && validTranscription(transcription))
@@ -69,11 +56,7 @@ object PartOfSpeech {
   }
 
   final case class Verb private(value: String, translation: String, transcription: String, thirdPerson: String,
-                                presentParticiple: String, pastParticiple: String) extends PartOfSpeech {
-    override def getValue: String = value
-    override def equals(that: Any): Boolean = isEqual(this, that)
-    override def compare(that: PartOfSpeech): Int = compareByValue(this, that)
-  }
+                                presentParticiple: String, pastParticiple: String) extends PartOfSpeech(value)
   object Verb {
     def from(value: String, translation: String, transcription: String, thirdPerson: String,
              presentParticiple: String, pastParticiple: String): Option[Verb] =
