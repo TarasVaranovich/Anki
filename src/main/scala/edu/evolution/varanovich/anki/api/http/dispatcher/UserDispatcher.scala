@@ -85,7 +85,7 @@ object UserDispatcher {
         case (NotExists, _, _) => Response(Status.Accepted).withEntity(ErrorResponse("User not found."))
         case (WrongPassword, _, _) => Response(Status.Accepted).withEntity(ErrorResponse("Wrong password."))
         case (Blocked, _, _) => Response(Status.Accepted).withEntity(ErrorResponse("User is blocked."))
-        case (ServerError, _, _) =>
+        case (_, _, _) =>
           Response(Status.Accepted).withEntity(ErrorResponse("Unknown error. Use are not logged in."))
       }
     executeValidated(request, login)
