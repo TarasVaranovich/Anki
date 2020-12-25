@@ -1,10 +1,14 @@
 package edu.evolution.varanovich.anki.db.program.entity
 
+import doobie.implicits.toSqlInterpolator
 import doobie.{ConnectionIO, Fragment, Update}
 import edu.evolution.varanovich.anki.model.PartOfSpeech.Preposition
 import edu.evolution.varanovich.anki.utility.VocabularyConfig.{MaxEngWordLength, MaxRusWordLength}
 
 object PrepositionProgram {
+  private val insertFragment: Fragment = fr"INSERT INTO preposition(value, translation, transcription) VALUES(?, ?, ?)"
+  private val selectFragment: Fragment = fr"SELECT value, translation, transcription FROM preposition"
+
   def createPrepositionTable: ConnectionIO[Int] = {
     val query: String =
       s"""CREATE TABLE preposition(
@@ -15,62 +19,27 @@ object PrepositionProgram {
     Fragment.const(query).update.run
   }
 
-  def createPreposition(preposition: Preposition): ConnectionIO[Int] = {
-    val query: String =
-      s"""INSERT INTO preposition(
-         |value,
-         |translation,
-         |transcription) VALUES (
-         |'${preposition.value}',
-         |'${preposition.translation}',
-         |'${preposition.transcription}');""".stripMargin
-    Fragment.const(query).update.run
-  }
+  def createPreposition(preposition: Preposition): ConnectionIO[Int] =
+    Update[Preposition](insertFragment.query.sql).run(preposition)
 
-  def createPrepositionListSafely(prepositions: List[Preposition]): ConnectionIO[Int] = {
-    val query: String =
-      s"""INSERT INTO
-         |preposition( value, translation, transcription)
-         |VALUES (?,?,?) ON CONFLICT DO NOTHING;""".stripMargin
-    Update[Preposition](query).updateMany(prepositions)
-  }
+  def createPrepositionListSafely(prepositions: List[Preposition]): ConnectionIO[Int] =
+    Update[Preposition]((insertFragment ++ fr"ON CONFLICT DO NOTHING;").query.sql).updateMany(prepositions)
 
-  def readPreposition(value: String): ConnectionIO[Option[Preposition]] = {
-    val query: String =
-      s"""SELECT
-         |value,
-         |translation,
-         |transcription
-         |FROM preposition WHERE value = '$value'""".stripMargin
-    Fragment.const(query).query[Preposition].option
-  }
+  def readPreposition(value: String): ConnectionIO[Option[Preposition]] =
+    (selectFragment ++ fr"WHERE value = $value").query[Preposition].option
 
-  def readPrepositionById(id: Int): ConnectionIO[Option[Preposition]] = {
-    val query: String =
-      s"""SELECT
-         |value,
-         |translation,
-         |transcription
-         |FROM preposition WHERE id = $id""".stripMargin
-    Fragment.const(query).query[Preposition].option
-  }
+  def readPrepositionById(id: Int): ConnectionIO[Option[Preposition]] =
+    (selectFragment ++ fr"WHERE id = $id").query[Preposition].option
 
-  def readAllPrepositions: ConnectionIO[List[Preposition]] = {
-    val query: String = s"SELECT value, translation, transcription FROM preposition"
-    Fragment.const(query).query[Preposition].to[List]
-  }
+  def readAllPrepositions: ConnectionIO[List[Preposition]] = selectFragment.query[Preposition].to[List]
 
-  def updatePreposition(preposition: Preposition): ConnectionIO[Int] = {
-    val query: String =
-      s"""UPDATE preposition SET
-         |translation = '${preposition.translation}',
-         |transcription = '${preposition.transcription}'
-       WHERE value = '${preposition.value}'""".stripMargin
-    Fragment.const(query).update.run
-  }
+  def updatePreposition(preposition: Preposition): ConnectionIO[Int] =
+    fr"""UPDATE preposition SET
+        |translation = ${preposition.translation},
+        |transcription = ${preposition.transcription}
+       WHERE value = ${preposition.value}""".stripMargin
+      .update.run
 
-  def deletePreposition(preposition: Preposition): ConnectionIO[Int] = {
-    val query: String = s"DELETE FROM preposition WHERE value = '${preposition.value}'"
-    Fragment.const(query).update.run
-  }
+  def deletePreposition(preposition: Preposition): ConnectionIO[Int] =
+    fr"DELETE FROM preposition WHERE value = ${preposition.value}".update.run
 }

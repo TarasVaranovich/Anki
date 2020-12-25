@@ -9,7 +9,7 @@ import edu.evolution.varanovich.anki.api.http.protocol.AnkiResponse._
 import edu.evolution.varanovich.anki.api.session.Session.Cache
 import edu.evolution.varanovich.anki.api.session.UserSession
 import edu.evolution.varanovich.anki.db.DbManager
-import edu.evolution.varanovich.anki.db.program.entity.UserProgram._
+import edu.evolution.varanovich.anki.db.program.domain.UserProgram._
 import edu.evolution.varanovich.anki.model.User
 import edu.evolution.varanovich.anki.utility.CryptoUtility.{encryptSHA256, generateToken}
 import edu.evolution.varanovich.anki.validator.UserValidator

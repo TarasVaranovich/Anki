@@ -12,9 +12,9 @@ import edu.evolution.varanovich.anki.api.http.protocol.AnkiResponse.{AnkiGeneric
 import edu.evolution.varanovich.anki.api.session.Session.Cache
 import edu.evolution.varanovich.anki.api.session.UserSession
 import edu.evolution.varanovich.anki.db.DbManager
-import edu.evolution.varanovich.anki.db.program.entity.AnswerInfoProgram
-import edu.evolution.varanovich.anki.db.program.entity.CardProgram._
-import edu.evolution.varanovich.anki.db.program.entity.DeckProgram._
+import edu.evolution.varanovich.anki.db.program.domain.AnswerInfoProgram
+import edu.evolution.varanovich.anki.db.program.domain.CardProgram._
+import edu.evolution.varanovich.anki.db.program.domain.DeckProgram._
 import edu.evolution.varanovich.anki.model.{AnswerInfo, Card}
 import io.circe.generic.codec.DerivedAsObjectCodec.deriveCodec
 import io.circe.parser.decode

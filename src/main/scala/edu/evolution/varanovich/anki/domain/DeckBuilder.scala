@@ -6,7 +6,7 @@ import java.time.format.DateTimeFormatter
 import cats.effect.{ContextShift, IO}
 import doobie.implicits._
 import edu.evolution.varanovich.anki.db.DbManager
-import edu.evolution.varanovich.anki.db.program.domain.ServiceProgram.{readMaxId, readRowsCount}
+import edu.evolution.varanovich.anki.db.program.service.ServiceProgram.{readMaxId, readRowsCount}
 import edu.evolution.varanovich.anki.db.program.entity.AdjectiveProgram.readAdjectiveById
 import edu.evolution.varanovich.anki.db.program.entity.NounProgram.readNounById
 import edu.evolution.varanovich.anki.db.program.entity.PhraseProgram.readPhraseById

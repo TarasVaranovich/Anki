@@ -1,4 +1,4 @@
-package edu.evolution.varanovich.anki.db.program.domain
+package edu.evolution.varanovich.anki.db.program.service
 
 import cats.effect.IO
 import cats.effect.testing.scalatest.AsyncIOSpec
@@ -6,12 +6,12 @@ import cats.implicits.{catsSyntaxApply, toTraverseOps}
 import doobie.implicits._
 import edu.evolution.varanovich.anki._
 import edu.evolution.varanovich.anki.db.DbManager
-import edu.evolution.varanovich.anki.db.program.domain.ServiceProgram.{dropTable, readMaxId, readRowsCount}
 import edu.evolution.varanovich.anki.db.program.entity.AdjectiveProgram.{createAdjectiveListSafely, createAdjectiveTable}
 import edu.evolution.varanovich.anki.db.program.entity.NounProgram.{createNounListSafely, createNounTable}
 import edu.evolution.varanovich.anki.db.program.entity.PhraseProgram.{createPhraseListSafely, createPhraseTable}
 import edu.evolution.varanovich.anki.db.program.entity.PrepositionProgram.{createPrepositionListSafely, createPrepositionTable}
 import edu.evolution.varanovich.anki.db.program.entity.VerbProgram.{createVerbListSafely, createVerbTable}
+import edu.evolution.varanovich.anki.db.program.service.ServiceProgram.{dropTable, readMaxId, readRowsCount}
 import org.scalatest.freespec.AsyncFreeSpec
 import org.scalatest.matchers.must.Matchers
 

@@ -1,18 +1,18 @@
-package edu.evolution.varanovich.anki.db.program.entity
+package edu.evolution.varanovich.anki.db.program.domain
 
 import cats.effect.IO
 import cats.effect.testing.scalatest.AsyncIOSpec
-import cats.implicits._
-import doobie.implicits._
+import cats.implicits.catsSyntaxApply
 import edu.evolution.varanovich.anki.db.DbManager
-import edu.evolution.varanovich.anki.db.program.domain.ServiceProgram._
-import edu.evolution.varanovich.anki.db.program.entity.CardProgram._
-import edu.evolution.varanovich.anki.db.program.entity.DeckProgram.{createDeck, createDeckTable, readEarliestFreshDeckInfo, _}
-import edu.evolution.varanovich.anki.db.program.entity.UserProgram._
+import edu.evolution.varanovich.anki.db.program.domain.CardProgram._
+import edu.evolution.varanovich.anki.db.program.domain.DeckProgram.{createDeck, createDeckTable, _}
+import edu.evolution.varanovich.anki.db.program.domain.UserProgram._
+import edu.evolution.varanovich.anki.db.program.service.ServiceProgram._
 import edu.evolution.varanovich.anki.domain.DeckBuilder.GeneratedDeckName
 import edu.evolution.varanovich.anki.{deckOpt, _}
 import org.scalatest.freespec.AsyncFreeSpec
 import org.scalatest.matchers.should.Matchers
+import doobie.implicits._
 
 class DeckAndCardProgramSpec extends AsyncFreeSpec with AsyncIOSpec with Matchers {
   "should successfully perform 'CRUD' operations" in {
@@ -46,7 +46,7 @@ class DeckAndCardProgramSpec extends AsyncFreeSpec with AsyncIOSpec with Matcher
     }
   }
 
-  "should successfully read id of last generated deck" in {
+  "should successfully perform service operations" in {
     for {
       userOne <- IO.fromOption(userOpt)(throw new Exception("User not created."))
       userTwo <- IO.fromOption(userOptSecond)(throw new Exception("User not created."))
@@ -98,7 +98,12 @@ class DeckAndCardProgramSpec extends AsyncFreeSpec with AsyncIOSpec with Matcher
       lastGeneratedUserOneInfoOpt <- DbManager.
         transactor.use(readLastDeckInfoByPatternAndUserName(GeneratedDeckName, userOne.name).transact[IO])
       lastGeneratedUserOneInfo <- IO
-        .fromOption(lastGeneratedUserOneInfoOpt)(throw new Exception("Last generated deck ont found."))
+        .fromOption(lastGeneratedUserOneInfoOpt)(throw new Exception("Last generated deck not found."))
+      deckIdList <- DbManager.
+        transactor.use(readDeckIdListByUserName(userOne.name).transact[IO])
+      cardIdOpt <- DbManager
+        .transactor.use(readCardIdByDeckIdAndContent(deckTwoUserTwoId, deckTwo.cards.toList.head).transact[IO])
+      cardId <- IO.fromOption(cardIdOpt)(throw new Exception("Card id found."))
       generatedCardList <- DbManager.transactor.use(readCardList(lastGeneratedUserOneInfo._1).transact[IO])
       _ <- DbManager.transactor.use(dropTable("card").transact[IO])
       _ <- DbManager.transactor.use(dropTable("deck").transact[IO])
@@ -106,6 +111,8 @@ class DeckAndCardProgramSpec extends AsyncFreeSpec with AsyncIOSpec with Matcher
       _ <- DbManager.transactor.use(dropType("privileges_enum").transact[IO])
     } yield {
       assert(generatedCardList.toSet == deckTwo.cards)
+      assert(deckIdList == List(1, 3, 5))
+      assert(cardId == 26)
     }
   }
 }

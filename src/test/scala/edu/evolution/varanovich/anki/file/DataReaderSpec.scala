@@ -67,6 +67,6 @@ class DataReaderSpec extends AsyncFreeSpec with AsyncIOSpec with Matchers {
   "should read all files with verbs" in {
     for {
       verbs <- DataReader.all(FileAliases.Verb, DataParser.verb)
-    } yield assert(verbs.size == 363)
+    } yield assert(verbs.size == 362)
   }
 }

@@ -11,9 +11,9 @@ import edu.evolution.varanovich.anki.api.http.protocol.AnkiResponse._
 import edu.evolution.varanovich.anki.api.session.Session.Cache
 import edu.evolution.varanovich.anki.api.session.UserSession
 import edu.evolution.varanovich.anki.db.DbManager
-import edu.evolution.varanovich.anki.db.program.entity.CardProgram.{createCardList, readCardList}
-import edu.evolution.varanovich.anki.db.program.entity.DeckProgram._
-import edu.evolution.varanovich.anki.db.program.entity.UserProgram.readSequentialId
+import edu.evolution.varanovich.anki.db.program.domain.CardProgram.{createCardList, readCardList}
+import edu.evolution.varanovich.anki.db.program.domain.DeckProgram._
+import edu.evolution.varanovich.anki.db.program.domain.UserProgram.readSequentialId
 import edu.evolution.varanovich.anki.domain.DeckBuilder
 import edu.evolution.varanovich.anki.domain.DeckBuilder.GeneratedDeckName
 import edu.evolution.varanovich.anki.model.Deck
