@@ -1,20 +1,16 @@
 package edu.evolution.varanovich.anki.file
 
-import edu.evolution.varanovich.anki.adt.PartOfSpeech._
+import edu.evolution.varanovich.anki.model.PartOfSpeech._
 
 object DataParser {
-  val adjective: (List[String] => Option[Adjective]) = (parts: List[String]) =>
+  def adjective(parts: List[String]): Option[Adjective] =
     Adjective.from(parts.head, parts(2), parts(1), "", "")
 
-  val noun: (List[String] => Option[Noun]) = (parts: List[String]) =>
-    Noun.from(parts.head, parts(2), parts(1), "")
+  def noun(parts: List[String]): Option[Noun] = Noun.from(parts.head, parts(2), parts(1), "")
 
-  val phrase: (List[String] => Option[Phrase]) = (parts: List[String]) =>
-    Phrase.from(parts.head, parts(2))
+  def phrase(parts: List[String]): Option[Phrase] = Phrase.from(parts.head, parts(2))
 
-  val preposition: (List[String] => Option[Preposition]) = (parts: List[String]) =>
-    Preposition.from(parts.head, parts(2), parts(1))
+  def preposition(parts: List[String]): Option[Preposition] = Preposition.from(parts.head, parts(2), parts(1))
 
-  val verb: (List[String] => Option[Verb]) = (parts: List[String]) =>
-    Verb.from(parts.head, parts(6), parts(1), parts(5), parts(4), parts(2))
+  def verb(parts: List[String]): Option[Verb] = Verb.from(parts.head, parts(6), parts(1), parts(5), parts(4), parts(2))
 }

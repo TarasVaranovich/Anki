@@ -2,7 +2,7 @@ package edu.evolution.varanovich.anki.client
 
 import java.util.concurrent.TimeUnit
 
-import edu.evolution.varanovich.anki.adt.{Card, Deck}
+import edu.evolution.varanovich.anki.model.{Card, Deck}
 
 class UserCookies {
   var id: String = ""

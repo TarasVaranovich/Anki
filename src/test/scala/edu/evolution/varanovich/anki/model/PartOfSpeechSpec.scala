@@ -1,4 +1,4 @@
-package edu.evolution.varanovich.anki.adt
+package edu.evolution.varanovich.anki.model
 
 import edu.evolution.varanovich.anki._
 import org.scalatest.flatspec.AnyFlatSpec
@@ -45,7 +45,7 @@ class PartOfSpeechSpec extends AnyFlatSpec {
       word <- words
       value <- word
     } yield value
-    assert(values.sorted.map(_.getValue) == List("above", "big", "clumsy", "coast", "consist", "high", "How are you?"))
+    assert(values.sorted.map(_.getValue) == List("How are you?", "above", "big", "clumsy", "coast", "consist", "high"))
   }
 
   "Preposition" should "be init successfully with multi-translation" in {
@@ -54,9 +54,5 @@ class PartOfSpeechSpec extends AnyFlatSpec {
 
   "Noun" should "be init successfully with empty plural" in {
     assert(glassesNounOpt.isDefined)
-  }
-
-  "Noun" should "be init successfully with spaced plural" in {
-    assert(glassesNounWithGapsOpt.isDefined)
   }
 }

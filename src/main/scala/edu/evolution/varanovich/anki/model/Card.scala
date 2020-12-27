@@ -1,6 +1,6 @@
-package edu.evolution.varanovich.anki.adt
+package edu.evolution.varanovich.anki.model
 
-import edu.evolution.varanovich.anki.adt.PartOfSpeech.{Adjective, Preposition, Verb}
+import PartOfSpeech.{Adjective, Preposition, Verb}
 
 final case class Card private(question: String, answer: String) extends Ordered[Card] {
   override def equals(that: Any): Boolean = that match {

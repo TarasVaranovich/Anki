@@ -1,7 +1,7 @@
 package edu.evolution.varanovich
 
-import edu.evolution.varanovich.anki.adt.PartOfSpeech._
-import edu.evolution.varanovich.anki.adt.{Card, Deck, Privileges, User}
+import edu.evolution.varanovich.anki.model.PartOfSpeech._
+import edu.evolution.varanovich.anki.model.{Card, Deck, Privileges, User}
 import edu.evolution.varanovich.anki.domain.DeckBuilder.GeneratedDeckName
 
 package object anki {
@@ -23,8 +23,6 @@ package object anki {
   val coastNounModifiedOpt: Option[Noun] =
     Noun.from("coast", "побережье, берег", "[kəust]", "coasts")
   val glassesNounOpt: Option[Noun] = Noun.from("glasses", "очки", "[ɡlɑ:siz]", "")
-  val glassesNounWithGapsOpt: Option[Noun] =
-    Noun.from("glasses", "очки", "[ɡlɑ:siz]", "     ")
 
   //PHRASES
   val howAreYouPhraseOpt: Option[Phrase] = Phrase.from("How are you?", "Как дела?")

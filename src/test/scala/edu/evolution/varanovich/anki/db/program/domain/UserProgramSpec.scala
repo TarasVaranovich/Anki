@@ -1,16 +1,16 @@
-package edu.evolution.varanovich.anki.db.program.entity
+package edu.evolution.varanovich.anki.db.program.domain
 
 import cats.effect.IO
 import cats.effect.testing.scalatest.AsyncIOSpec
-import cats.implicits._
-import doobie.implicits._
+import cats.implicits.catsSyntaxApply
 import edu.evolution.varanovich.anki._
 import edu.evolution.varanovich.anki.db.DbManager
-import edu.evolution.varanovich.anki.db.program.domain.ServiceProgram._
-import edu.evolution.varanovich.anki.db.program.entity.UserProgram._
+import edu.evolution.varanovich.anki.db.program.domain.UserProgram._
+import edu.evolution.varanovich.anki.db.program.service.ServiceProgram._
 import edu.evolution.varanovich.anki.utility.CryptoUtility.encryptSHA256
 import org.scalatest.freespec.AsyncFreeSpec
 import org.scalatest.matchers.should.Matchers
+import doobie.implicits._
 
 class UserProgramSpec extends AsyncFreeSpec with AsyncIOSpec with Matchers {
   "should successfully perform 'CRUD' operations" in {

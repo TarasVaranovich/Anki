@@ -33,18 +33,34 @@ class WordValidatorSpec extends AnyFreeSpec {
       assert(!validValue("-semi"))
     }
 
-    "is not valid with slash position" in {
-      assert(!validValue("not defined"))
+    "is not valid with gap between" in {
+      assert(!validValue("not valid"))
     }
   }
 
   "Valid optional word" - {
+    "is valid solid word" in {
+      assert(validOptionalValue("higher"))
+    }
+
+    "is valid empty string" in {
+      assert(validOptionalValue(""))
+    }
+
     "is valid with hyphen" in {
       assert(validOptionalValue("half-completed"))
     }
 
     "is valid with gap position and upper case" in {
-      assert(validOptionalValue("Not Defined"))
+      assert(validOptionalValue("put outside"))
+    }
+
+    "is not valid in case of start from gap" in {
+      assert(!validOptionalValue("  highest"))
+    }
+
+    "is not valid in case of end on hyphen" in {
+      assert(!validOptionalValue("highest-"))
     }
   }
 

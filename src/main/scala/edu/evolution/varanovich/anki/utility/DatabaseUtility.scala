@@ -4,15 +4,15 @@ import cats.effect.{ExitCode, IO, IOApp}
 import cats.implicits._
 import doobie.implicits._
 import edu.evolution.varanovich.anki.db.DbManager
-import edu.evolution.varanovich.anki.db.program.domain.ServiceProgram.{dropTable, dropType}
+import edu.evolution.varanovich.anki.db.program.service.ServiceProgram.{dropTable, dropType}
 import edu.evolution.varanovich.anki.db.program.entity.AdjectiveProgram._
-import edu.evolution.varanovich.anki.db.program.entity.AnswerInfoProgram.createAnswerInfoTable
-import edu.evolution.varanovich.anki.db.program.entity.CardProgram.createCardTable
-import edu.evolution.varanovich.anki.db.program.entity.DeckProgram.createDeckTable
+import edu.evolution.varanovich.anki.db.program.domain.AnswerInfoProgram.createAnswerInfoTable
+import edu.evolution.varanovich.anki.db.program.domain.CardProgram.createCardTable
+import edu.evolution.varanovich.anki.db.program.domain.DeckProgram.createDeckTable
 import edu.evolution.varanovich.anki.db.program.entity.NounProgram._
 import edu.evolution.varanovich.anki.db.program.entity.PhraseProgram.{createPhraseListSafely, createPhraseTable}
 import edu.evolution.varanovich.anki.db.program.entity.PrepositionProgram.{createPrepositionListSafely, createPrepositionTable}
-import edu.evolution.varanovich.anki.db.program.entity.UserProgram.createUserTable
+import edu.evolution.varanovich.anki.db.program.domain.UserProgram.createUserTable
 import edu.evolution.varanovich.anki.db.program.entity.VerbProgram.{createVerbListSafely, createVerbTable}
 import edu.evolution.varanovich.anki.file.{DataParser, DataReader, FileAliases}
 

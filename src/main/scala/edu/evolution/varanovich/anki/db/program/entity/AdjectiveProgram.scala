@@ -1,11 +1,17 @@
 package edu.evolution.varanovich.anki.db.program.entity
 
+import doobie.implicits.toSqlInterpolator
 import doobie.{ConnectionIO, Fragment, Update}
-import edu.evolution.varanovich.anki.adt.PartOfSpeech.Adjective
+import edu.evolution.varanovich.anki.model.PartOfSpeech.Adjective
 import edu.evolution.varanovich.anki.utility.VocabularyConfig.{MaxEngWordLength, MaxRusWordLength}
 
 object AdjectiveProgram {
-  val createAdjectiveTable: ConnectionIO[Int] = {
+  private val insertFragment: Fragment =
+    fr"INSERT INTO adjective(value,translation,transcription,comparative,superlative) VALUES (?,?,?,?,?)"
+  private val selectFragment: Fragment =
+    fr"SELECT value, translation, transcription, comparative, superlative FROM adjective"
+
+  def createAdjectiveTable: ConnectionIO[Int] = {
     val query: String =
       s"""CREATE TABLE adjective(
          |id SERIAL PRIMARY KEY,
@@ -17,83 +23,29 @@ object AdjectiveProgram {
     Fragment.const(query).update.run
   }
 
-  val createAdjective: Adjective => ConnectionIO[Int] = (adjective: Adjective) => {
-    val query: String =
-      s"""INSERT INTO adjective(
-         |value,
-         |translation,
-         |transcription,
-         |comparative,
-         |superlative) VALUES (
-         |'${adjective.value}',
-         |'${adjective.translation}',
-         |'${adjective.transcription}',
-         |'${adjective.comparative}',
-         |'${adjective.superlative}');""".stripMargin
-    Fragment.const(query).update.run
-  }
+  def createAdjective(adjective: Adjective): ConnectionIO[Int] =
+    Update[Adjective](insertFragment.query.sql).run(adjective)
 
-  val createAdjectiveListSafely: (List[Adjective]) => ConnectionIO[Int] = (adjectives: List[Adjective]) => {
-    val query: String =
-      s"""INSERT INTO adjective(
-         |value,
-         |translation,
-         |transcription,
-         |comparative,
-         |superlative) VALUES (?,?,?,?,?)
-         |ON CONFLICT DO NOTHING;""".stripMargin
-    Update[Adjective](query).updateMany(adjectives)
-  }
+  def createAdjectiveListSafely(adjectives: List[Adjective]): ConnectionIO[Int] =
+    Update[Adjective]((insertFragment ++ fr"ON CONFLICT DO NOTHING;").query.sql).updateMany(adjectives)
 
-  val readAdjective: String => ConnectionIO[Option[Adjective]] = (value: String) => {
-    val query: String =
-      s"""SELECT
-         |value,
-         |translation,
-         |transcription,
-         |comparative,
-         |superlative
-         |FROM adjective WHERE value = '$value'""".stripMargin
-    Fragment.const(query).query[Adjective].option
-  }
+  def readAdjective(value: String): ConnectionIO[Option[Adjective]] =
+    (selectFragment ++ fr"WHERE value = $value").query[Adjective].option
 
-  val readAdjectiveById: Int => ConnectionIO[Option[Adjective]] = (id: Int) => {
-    val query: String =
-      s"""SELECT
-         |value,
-         |translation,
-         |transcription,
-         |comparative,
-         |superlative
-         |FROM adjective WHERE id = $id""".stripMargin
-    Fragment.const(query).query[Adjective].option
-  }
+  def readAdjectiveById(id: Int): ConnectionIO[Option[Adjective]] =
+    (selectFragment ++ fr"WHERE id = $id").query[Adjective].option
 
-  val readAllAdjectives: ConnectionIO[List[Adjective]] = {
-    val query: String =
-      s"""SELECT
-         |value,
-         |translation,
-         |transcription,
-         |comparative,
-         |superlative
-         |FROM adjective""".stripMargin
-    Fragment.const(query).query[Adjective].to[List]
-  }
+  def readAllAdjectives: ConnectionIO[List[Adjective]] = selectFragment.query[Adjective].to[List]
 
-  val updateAdjective: Adjective => ConnectionIO[Int] = (adjective: Adjective) => {
-    val query: String =
-      s"""UPDATE adjective SET
-         |translation = '${adjective.translation}',
-         |transcription = '${adjective.transcription}',
-         |comparative = '${adjective.comparative}',
-         |superlative = '${adjective.superlative}'
-       WHERE value = '${adjective.value}'""".stripMargin
-    Fragment.const(query).update.run
-  }
+  def updateAdjective(adjective: Adjective): ConnectionIO[Int] =
+    fr"""UPDATE adjective SET
+        |translation = ${adjective.translation},
+        |transcription = ${adjective.transcription},
+        |comparative = ${adjective.comparative},
+        |superlative = ${adjective.superlative}
+       WHERE value = ${adjective.value}""".stripMargin
+      .update.run
 
-  val deleteAdjective: Adjective => ConnectionIO[Int] = (adjective: Adjective) => {
-    val query: String = s"DELETE FROM adjective WHERE value = '${adjective.value}'"
-    Fragment.const(query).update.run
-  }
+  def deleteAdjective(adjective: Adjective): ConnectionIO[Int] =
+    fr"DELETE FROM adjective WHERE value = ${adjective.value}".update.run
 }

@@ -3,7 +3,6 @@ package edu.evolution.varanovich.anki.api.http.dispatcher
 import cats.effect.{ContextShift, IO}
 import cats.implicits.catsSyntaxApply
 import doobie.implicits._
-import edu.evolution.varanovich.anki.adt._
 import edu.evolution.varanovich.anki.api.http.AnkiErrorCode._
 import edu.evolution.varanovich.anki.api.http.AnkiServer.ServerErrorResponse
 import edu.evolution.varanovich.anki.api.http.dispatcher.DispatcherUtility.executeAuthenticated
@@ -12,13 +11,13 @@ import edu.evolution.varanovich.anki.api.http.protocol.AnkiResponse._
 import edu.evolution.varanovich.anki.api.session.Session.Cache
 import edu.evolution.varanovich.anki.api.session.UserSession
 import edu.evolution.varanovich.anki.db.DbManager
-import edu.evolution.varanovich.anki.db.program.entity.CardProgram.{createCardList, readCardList}
-import edu.evolution.varanovich.anki.db.program.entity.DeckProgram._
-import edu.evolution.varanovich.anki.db.program.entity.UserProgram.readSequentialId
+import edu.evolution.varanovich.anki.db.program.domain.CardProgram.{createCardList, readCardList}
+import edu.evolution.varanovich.anki.db.program.domain.DeckProgram._
+import edu.evolution.varanovich.anki.db.program.domain.UserProgram.readSequentialId
 import edu.evolution.varanovich.anki.domain.DeckBuilder
 import edu.evolution.varanovich.anki.domain.DeckBuilder.GeneratedDeckName
+import edu.evolution.varanovich.anki.model.Deck
 import edu.evolution.varanovich.anki.utility.AnkiConfig.{MaxDeckLength, MinDeckLength}
-import edu.evolution.varanovich.anki.utility.StringUtility.matches
 import edu.evolution.varanovich.anki.validator.DeckValidator
 import io.circe.generic.codec.DerivedAsObjectCodec.deriveCodec
 import io.circe.parser.decode
@@ -31,7 +30,7 @@ object DeckDispatcher {
   def doRandom(size: String,
                request: Request[IO], cache: Cache[IO, String, UserSession])(implicit contextShift: ContextShift[IO]):
   IO[Response[IO]] = {
-    if (matches(size, "^[0-9]*$".r)) {
+    if (size.matches("^[0-9]*$")) {
       val generateDeck: (Int) => (String) => IO[Response[IO]] = (sizeInt: Int) => (userId: String) =>
         for {
           deckOpt <- DeckBuilder.randomDeck(sizeInt)

@@ -1,6 +1,6 @@
 package edu.evolution.varanovich.anki.validator
 
-import edu.evolution.varanovich.anki.adt.User
+import edu.evolution.varanovich.anki.model.User
 import edu.evolution.varanovich.anki.validator.UserValidator.AllErrorsOr
 import org.scalatest.freespec.AnyFreeSpec
 

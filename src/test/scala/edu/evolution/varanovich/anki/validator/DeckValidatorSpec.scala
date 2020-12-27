@@ -1,6 +1,6 @@
 package edu.evolution.varanovich.anki.validator
 
-import edu.evolution.varanovich.anki.adt.{Card, Deck}
+import edu.evolution.varanovich.anki.model.{Card, Deck}
 import edu.evolution.varanovich.anki.cardListOpt
 import edu.evolution.varanovich.anki.utility.WordValidator.validTranscription
 import edu.evolution.varanovich.anki.validator.UserValidator.AllErrorsOr
@@ -33,7 +33,7 @@ class DeckValidatorSpec extends AnyFreeSpec {
   }
 
   "successfully creates deck with custom part of speech" in {
-    val cards = Card("запускать, выстрелить", "fire/[ˈfaɪə]/fires/Not Defined/fired") :: cardListOpt.getOrElse(List())
+    val cards = Card("запускать, выстрелить", "fire/[ˈfaɪə]/fires//fired") :: cardListOpt.getOrElse(List())
     val result: AllErrorsOr[Deck] = DeckValidator.validate(cards, "This is new deck from 6 cards.")
     assert(result.isValid)
   }

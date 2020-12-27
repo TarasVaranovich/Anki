@@ -1,7 +1,7 @@
 package edu.evolution.varanovich.anki.domain
 
 import cats.effect.testing.scalatest.AsyncIOSpec
-import edu.evolution.varanovich.anki.db.program.domain.RandomDeckDescriptionLength
+import edu.evolution.varanovich.anki.domain.domain.RandomDeckDescriptionLength
 import edu.evolution.varanovich.anki.utility.AnkiConfig.{MaxDeckLength, MinDeckLength}
 import org.scalatest.freespec.AsyncFreeSpec
 import org.scalatest.matchers.must.Matchers

@@ -1,6 +1,6 @@
 package edu.evolution.varanovich.anki.api.http.protocol
 
-import edu.evolution.varanovich.anki.adt.{AnswerInfo, Card}
+import edu.evolution.varanovich.anki.model.{AnswerInfo, Card}
 
 trait AnkiRequest
 object AnkiRequest {

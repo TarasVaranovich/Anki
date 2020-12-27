@@ -11,6 +11,7 @@ scalacOptions ++= Seq(
 )
 
 val catsVersion = "2.2.0"
+val catsTestVersion = "0.4.1"
 val circeVersion = "0.13.0"
 val http4sVersion = "0.21.7"
 val doobieVersion = "0.9.4"
@@ -32,7 +33,7 @@ libraryDependencies ++= Seq(
   "org.tpolecat" %% "doobie-core" % doobieVersion,
   "org.tpolecat" %% "doobie-hikari" % doobieVersion,
   "org.tpolecat" %% "doobie-postgres" % doobieVersion,
-  "com.codecommit" %% "cats-effect-testing-scalatest" % "0.4.1" % Test,
+  "com.codecommit" %% "cats-effect-testing-scalatest" % catsTestVersion % Test,
   "com.beachape" %% "enumeratum" % enumeratumVersion,
   "com.beachape" %% "enumeratum-circe" % enumeratumVersion
 )

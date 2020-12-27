@@ -2,9 +2,8 @@ package edu.evolution.varanovich.anki.validator
 
 import cats.data.ValidatedNec
 import cats.implicits.{catsSyntaxTuple3Semigroupal, catsSyntaxValidatedIdBinCompat0}
-import edu.evolution.varanovich.anki.adt.{Privileges, User}
+import edu.evolution.varanovich.anki.model.{Privileges, User}
 import edu.evolution.varanovich.anki.utility.AnkiConfig._
-import edu.evolution.varanovich.anki.utility.StringUtility.matches
 
 object UserValidator {
   case object UserNameLengthError extends ValidationError {
@@ -37,7 +36,7 @@ object UserValidator {
       UserNameLengthError.invalidNec
 
   private def validateNamePattern(name: String): AllErrorsOr[String] =
-    if (matches(name, "^[A-Za-zЁёА-я]{1}[A-Za-zЁёА-я0-9\\-]*$".r)) name.validNec else
+    if (name.matches("^[A-Za-zЁёА-я]{1}[A-Za-zЁёА-я0-9\\-]*$")) name.validNec else
       UserNamePatternError.invalidNec
 
   private def validatePasswordLength(password: String): AllErrorsOr[String] =
@@ -45,7 +44,7 @@ object UserValidator {
       PasswordLengthError.invalidNec
 
   private def validatePasswordPattern(password: String): AllErrorsOr[String] =
-    if (matches(password, "[A-Za-zЁёА-я0-9.,:;?!)(\\-]*".r)) password.validNec else
+    if (password.matches("[A-Za-zЁёА-я0-9.,:;?!)(\\-]*")) password.validNec else
       PasswordPatternError.invalidNec
 
   private def validatePrivileges(privileges: String): AllErrorsOr[String] =

@@ -7,7 +7,7 @@ import doobie.implicits._
 import edu.evolution.varanovich.anki._
 import edu.evolution.varanovich.anki.db.DbManager
 import edu.evolution.varanovich.anki.db.program.entity.AdjectiveProgram._
-import edu.evolution.varanovich.anki.db.program.domain.ServiceProgram._
+import edu.evolution.varanovich.anki.db.program.service.ServiceProgram._
 import org.scalatest.freespec.AsyncFreeSpec
 import org.scalatest.matchers.should.Matchers
 

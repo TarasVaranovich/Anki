@@ -1,7 +1,7 @@
 package edu.evolution.varanovich.anki.api.http.protocol
 
 import cats.syntax.functor._
-import edu.evolution.varanovich.anki.adt.{Card, Deck}
+import edu.evolution.varanovich.anki.model.{Card, Deck}
 import io.circe.Decoder
 import io.circe.generic.codec.DerivedAsObjectCodec.deriveCodec
 

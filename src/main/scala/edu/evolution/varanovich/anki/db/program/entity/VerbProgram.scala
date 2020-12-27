@@ -1,107 +1,66 @@
 package edu.evolution.varanovich.anki.db.program.entity
 
+import doobie.implicits.toSqlInterpolator
 import doobie.{ConnectionIO, Fragment, Update}
-import edu.evolution.varanovich.anki.adt.PartOfSpeech.Verb
+import edu.evolution.varanovich.anki.model.PartOfSpeech.Verb
 import edu.evolution.varanovich.anki.utility.VocabularyConfig.{MaxEngWordLength, MaxRusWordLength}
 
 object VerbProgram {
-  val createVerbTable: ConnectionIO[Int] = {
+  private val insertFragment: Fragment =
+    fr"""INSERT INTO verb(
+        value,
+        translation,
+        transcription,
+        third_person,
+        present_participle,
+        past_participle)
+        VALUES (?,?,?,?,?,?)""".stripMargin
+
+  private val selectFragment: Fragment =
+    fr"""SELECT
+        value,
+        translation,
+        transcription,
+        third_person,
+        present_participle,
+        past_participle
+        FROM verb""".stripMargin
+
+  def createVerbTable: ConnectionIO[Int] = {
     val query: String =
       s"""CREATE TABLE verb(
-         |id SERIAL PRIMARY KEY,
-         |value VARCHAR($MaxEngWordLength) UNIQUE NOT NULL,
-         |translation VARCHAR($MaxRusWordLength) NOT NULL,
-         |transcription VARCHAR($MaxEngWordLength),
-         |third_person VARCHAR($MaxEngWordLength),
-         |present_participle VARCHAR($MaxEngWordLength),
-         |past_participle VARCHAR($MaxEngWordLength));""".stripMargin
+         id SERIAL PRIMARY KEY,
+         value VARCHAR($MaxEngWordLength) UNIQUE NOT NULL,
+         translation VARCHAR($MaxRusWordLength) NOT NULL,
+         transcription VARCHAR($MaxEngWordLength),
+         third_person VARCHAR($MaxEngWordLength),
+         present_participle VARCHAR($MaxEngWordLength),
+         past_participle VARCHAR($MaxEngWordLength));""".stripMargin
     Fragment.const(query).update.run
   }
 
-  val createVerb: Verb => ConnectionIO[Int] = (verb: Verb) => {
-    val query: String =
-      s"""INSERT INTO verb(
-         |value,
-         |translation,
-         |transcription,
-         |third_person,
-         |present_participle,
-         |past_participle) VALUES (
-         |'${verb.value}',
-         |'${verb.translation}',
-         |'${verb.transcription}',
-         |'${verb.thirdPerson}',
-         |'${verb.presentParticiple}',
-         |'${verb.pastParticiple}');""".stripMargin
-    Fragment.const(query).update.run
+  def createVerb(verb: Verb): ConnectionIO[Int] = Update[Verb](insertFragment.query.sql).run(verb)
+
+  def createVerbListSafely(verbs: List[Verb]): ConnectionIO[Int] = {
+    Update[Verb]((insertFragment ++ fr"ON CONFLICT DO NOTHING;").query.sql).updateMany(verbs)
   }
 
-  val createVerbListSafely: (List[Verb]) => ConnectionIO[Int] = (verbs: List[Verb]) => {
-    val query: String =
-      s"""INSERT INTO verb(
-         |value,
-         |translation,
-         |transcription,
-         |third_person,
-         |present_participle,
-         |past_participle) VALUES (?,?,?,?,?,?)
-         |ON CONFLICT DO NOTHING;""".stripMargin
-    Update[Verb](query).updateMany(verbs)
-  }
+  def readVerb(value: String): ConnectionIO[Option[Verb]] =
+    (selectFragment ++ fr"WHERE value = $value").query[Verb].option
 
-  val readVerb: String => ConnectionIO[Option[Verb]] = (value: String) => {
-    val query: String =
-      s"""SELECT
-         |value,
-         |translation,
-         |transcription,
-         |third_person,
-         |present_participle,
-         |past_participle
-         |FROM verb WHERE value = '$value'""".stripMargin
-    Fragment.const(query).query[Verb].option
-  }
+  def readVerbById(id: Int): ConnectionIO[Option[Verb]] = (selectFragment ++ fr"WHERE id = $id").query[Verb].option
 
-  val readVerbById: Int => ConnectionIO[Option[Verb]] = (id: Int) => {
-    val query: String =
-      s"""SELECT
-         |value,
-         |translation,
-         |transcription,
-         |third_person,
-         |present_participle,
-         |past_participle
-         |FROM verb WHERE id = $id""".stripMargin
-    Fragment.const(query).query[Verb].option
-  }
+  def readAllVerbs: ConnectionIO[List[Verb]] = selectFragment.query[Verb].to[List]
 
-  val readAllVerbs: ConnectionIO[List[Verb]] = {
-    val query: String =
-      s"""SELECT
-         |value,
-         |translation,
-         |transcription,
-         |third_person,
-         |present_participle,
-         |past_participle
-         |FROM verb""".stripMargin
-    Fragment.const(query).query[Verb].to[List]
-  }
+  def updateVerb(verb: Verb): ConnectionIO[Int] =
+    fr"""UPDATE verb SET
+        translation = ${verb.translation},
+        transcription = ${verb.transcription},
+        third_person = ${verb.thirdPerson},
+        present_participle = ${verb.presentParticiple},
+        past_participle = ${verb.pastParticiple}
+       WHERE value = ${verb.value}""".stripMargin
+      .update.run
 
-  val updateVerb: Verb => ConnectionIO[Int] = (verb: Verb) => {
-    val query: String =
-      s"""UPDATE verb SET
-         |translation = '${verb.translation}',
-         |transcription = '${verb.transcription}',
-         |third_person = '${verb.thirdPerson}',
-         |present_participle = '${verb.presentParticiple}',
-         |past_participle = '${verb.pastParticiple}'
-       WHERE value = '${verb.value}'""".stripMargin
-    Fragment.const(query).update.run
-  }
-
-  val deleteVerb: Verb => ConnectionIO[Int] = (verb: Verb) => {
-    val query: String = s"DELETE FROM verb WHERE value = '${verb.value}'"
-    Fragment.const(query).update.run
-  }
+  def deleteVerb(verb: Verb): ConnectionIO[Int] = fr"DELETE FROM verb WHERE value = ${verb.value}".update.run
 }

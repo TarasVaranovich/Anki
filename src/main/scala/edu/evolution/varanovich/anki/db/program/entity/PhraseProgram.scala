@@ -1,11 +1,15 @@
 package edu.evolution.varanovich.anki.db.program.entity
 
+import doobie.implicits.toSqlInterpolator
 import doobie.{ConnectionIO, Fragment, Update}
-import edu.evolution.varanovich.anki.adt.PartOfSpeech.Phrase
+import edu.evolution.varanovich.anki.model.PartOfSpeech.Phrase
 import edu.evolution.varanovich.anki.utility.VocabularyConfig.MaxPhraseLength
 
 object PhraseProgram {
-  val createPhraseTable: ConnectionIO[Int] = {
+  private val insertFragment: Fragment = fr"INSERT INTO phrase (value,translation) VALUES (?,?)"
+  private val selectFragment: Fragment = fr"SELECT value, translation FROM phrase"
+
+  def createPhraseTable: ConnectionIO[Int] = {
     val query: String =
       s"""CREATE TABLE phrase(
          |id SERIAL PRIMARY KEY,
@@ -14,54 +18,21 @@ object PhraseProgram {
     Fragment.const(query).update.run
   }
 
-  val createPhrase: Phrase => ConnectionIO[Int] = (phrase: Phrase) => {
-    val query: String =
-      s"""INSERT INTO phrase(
-         |value,
-         |translation) VALUES (
-         |'${phrase.value}',
-         |'${phrase.translation}');""".stripMargin
-    Fragment.const(query).update.run
-  }
+  def createPhrase(phrase: Phrase): ConnectionIO[Int] = Update[Phrase](insertFragment.query.sql).run(phrase)
 
-  val createPhraseListSafely: (List[Phrase]) => ConnectionIO[Int] = (phrases: List[Phrase]) => {
-    val query: String = s"INSERT INTO phrase (value,translation) VALUES (?,?) ON CONFLICT DO NOTHING;"
-    Update[Phrase](query).updateMany(phrases)
-  }
+  def createPhraseListSafely(phrases: List[Phrase]): ConnectionIO[Int] =
+    Update[Phrase]((insertFragment ++ fr"ON CONFLICT DO NOTHING;").query.sql).updateMany(phrases)
 
-  val readPhrase: String => ConnectionIO[Option[Phrase]] = (value: String) => {
-    val query: String =
-      s"""SELECT
-         |value,
-         |translation
-         |FROM phrase WHERE value = '$value'""".stripMargin
-    Fragment.const(query).query[Phrase].option
-  }
+  def readPhrase(value: String): ConnectionIO[Option[Phrase]] =
+    (selectFragment ++ fr"WHERE value = $value").query[Phrase].option
 
-  val readPhraseById: Int => ConnectionIO[Option[Phrase]] = (id: Int) => {
-    val query: String =
-      s"""SELECT
-         |value,
-         |translation
-         |FROM phrase WHERE id = $id""".stripMargin
-    Fragment.const(query).query[Phrase].option
-  }
+  def readPhraseById(id: Int): ConnectionIO[Option[Phrase]] =
+    (selectFragment ++ fr"WHERE id = $id").query[Phrase].option
 
-  val readAllPhrases: ConnectionIO[List[Phrase]] = {
-    val query: String = s"SELECT value, translation FROM phrase"
-    Fragment.const(query).query[Phrase].to[List]
-  }
+  def readAllPhrases: ConnectionIO[List[Phrase]] = selectFragment.query[Phrase].to[List]
 
-  val updatePhrase: Phrase => ConnectionIO[Int] = (phrase: Phrase) => {
-    val query: String =
-      s"""UPDATE phrase SET
-         |translation = '${phrase.translation}'
-       WHERE value = '${phrase.value}'""".stripMargin
-    Fragment.const(query).update.run
-  }
+  def updatePhrase(phrase: Phrase): ConnectionIO[Int] =
+    fr"UPDATE phrase SET translation = ${phrase.translation} WHERE value = ${phrase.value}".update.run
 
-  val deletePhrase: Phrase => ConnectionIO[Int] = (phrase: Phrase) => {
-    val query: String = s"DELETE FROM phrase WHERE value = '${phrase.value}'"
-    Fragment.const(query).update.run
-  }
+  def deletePhrase(phrase: Phrase): ConnectionIO[Int] = fr"DELETE FROM phrase WHERE value = ${phrase.value}".update.run
 }
