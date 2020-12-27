@@ -7,6 +7,7 @@ Course project for evolution scala bootcamp
 3. Installed scala build tool. Application tested with sbt 1.3.13
 4. Installed scala. Application tested with scala 2.13.3
 5. Postgress 9.3 or above database. Application tested with version 13
+6. Create database named 'anki' on postgres server
 
 ## Application usage
 1. Create database Anki and check database connection properties. 
