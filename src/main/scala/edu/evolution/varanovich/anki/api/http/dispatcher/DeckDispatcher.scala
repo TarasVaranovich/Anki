@@ -59,9 +59,7 @@ object DeckDispatcher {
                       cache: Cache[IO, String, UserSession])(implicit contextShift: ContextShift[IO]):
   IO[Response[IO]] = {
     val lastGeneratedDeck: String => IO[Response[IO]] = (userId: String) =>
-      for {
-        deck <- readDeckWithCards(GeneratedDeckName, userId, cache)
-      } yield deck match {
+      readDeckWithCards(GeneratedDeckName, userId, cache).map {
         case Some(deck) => Response(Status.Ok).withEntity(DeckResponse(deck))
         case None => Response(Status.Accepted).withEntity(ErrorResponse(s"Deck not found."))
       }
@@ -72,9 +70,8 @@ object DeckDispatcher {
              cache: Cache[IO, String, UserSession])(implicit contextShift: ContextShift[IO]):
   IO[Response[IO]] = {
     val saveDeck: String => IO[Response[IO]] = (userId: String) => {
-      val saveToDatabase: Deck => IO[Response[IO]] = (deck: Deck) => for {
-        saveResult <- saveDeckWithCards(deck, userId, cache)
-      } yield saveResult match {
+      val saveToDatabase: Deck => IO[Response[IO]] = (deck: Deck) =>
+      saveDeckWithCards(deck, userId, cache).map {
         case ServerError => ServerErrorResponse
         case value => if (value == deck.cards.size)
           Response(Status.Created).withEntity(AnkiGenericResponse("Deck is saved.")) else

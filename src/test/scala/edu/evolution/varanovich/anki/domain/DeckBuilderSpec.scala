@@ -8,46 +8,30 @@ import org.scalatest.matchers.must.Matchers
 
 class DeckBuilderSpec extends AsyncFreeSpec with AsyncIOSpec with Matchers {
   "should successfully generate random deck with max size" in {
-    for {
-      deck <- DeckBuilder.randomDeck(MaxDeckLength)
-    } yield {
+    DeckBuilder.randomDeck(MaxDeckLength).map(deck => {
       assert(deck.isDefined)
       assert(deck.get.cards.size == MaxDeckLength)
       assert(deck.get.description.length == RandomDeckDescriptionLength)
-    }
+    })
   }
 
   "should successfully generate random deck with min size" in {
-    for {
-      deck <- DeckBuilder.randomDeck(MinDeckLength)
-    } yield {
+    DeckBuilder.randomDeck(MinDeckLength).map(deck => {
       assert(deck.isDefined)
       assert(deck.get.cards.size == MinDeckLength)
       assert(deck.get.description.length == RandomDeckDescriptionLength)
-    }
+    })
   }
 
   "should not generate random deck with to small size" in {
-    for {
-      deck <- DeckBuilder.randomDeck(3)
-    } yield {
-      assert(deck.isEmpty)
-    }
+    DeckBuilder.randomDeck(3).map(deck => assert(deck.isEmpty))
   }
 
   "should not generate random deck if deck size greater than summary words count" in {
-    for {
-      deck <- DeckBuilder.randomDeck(100000)
-    } yield {
-      assert(deck.isEmpty)
-    }
+    DeckBuilder.randomDeck(100000).map(deck => assert(deck.isEmpty))
   }
 
   "should not generate random deck if one of part of speech's counts can't fill required selection" in {
-    for {
-      deck <- DeckBuilder.randomDeck(400)
-    } yield {
-      assert(deck.isEmpty)
-    }
+    DeckBuilder.randomDeck(400).map(deck => assert(deck.isEmpty))
   }
 }

@@ -18,51 +18,54 @@ trait AnkiClientCommand {
 }
 object AnkiClientCommand {
   final case class RegisterCommand(client: Client[IO])(implicit cookies: UserCookies) extends AnkiClientCommand {
-    override def run: IO[Unit] = for {
-      _ <- IO(println(
-        s"""Registration
-           |Write user name in:""".stripMargin))
-      name <- IO(scala.io.StdIn.readLine())
-      _ <- IO(println("Write password in:"))
-      password <- IO(scala.io.StdIn.readLine())
-      response <- client.expect[AnkiResponse](RegisterRequest(name, password).send)
-        .handleErrorWith((_: Throwable) => IO(ErrorResponse(ErrorMessage)))
-      _ <- response match {
-        case UserResponse(id, token) => IO(cookies.updateCredentials(id, token)) *>
-          IO(println("Registration successful.")) *> IO.unit
-        case errorResponse => handleErrorResponse(errorResponse, RegisterCommand(client).run, client)
-      }
-    } yield ()
+    override def run: IO[Unit] =
+      for {
+        _ <- IO(println(
+          s"""Registration
+             |Write user name in:""".stripMargin))
+        name <- IO(scala.io.StdIn.readLine())
+        _ <- IO(println("Write password in:"))
+        password <- IO(scala.io.StdIn.readLine())
+        response <- client.expect[AnkiResponse](RegisterRequest(name, password).send)
+          .handleErrorWith((_: Throwable) => IO(ErrorResponse(ErrorMessage)))
+        _ <- response match {
+          case UserResponse(id, token) => IO(cookies.updateCredentials(id, token)) *>
+            IO(println("Registration successful.")) *> IO.unit
+          case errorResponse => handleErrorResponse(errorResponse, RegisterCommand(client).run, client)
+        }
+      } yield ()
   }
   final case class LoginCommand(client: Client[IO])(implicit cookies: UserCookies) extends AnkiClientCommand {
-    override def run: IO[Unit] = for {
-      _ <- IO(println(
-        s"""Login
-           |Enter name:""".stripMargin))
-      name <- IO(scala.io.StdIn.readLine())
-      _ <- IO(println("Enter password:"))
-      password <- IO(scala.io.StdIn.readLine())
-      response <- client.expect[AnkiResponse](LoginRequest(name, password).send)
-        .handleErrorWith((_: Throwable) => IO(ErrorResponse("Connection error")))
-      _ <- response match {
-        case UserResponse(id, token) => IO(cookies.updateCredentials(id, token)) *>
-          IO(println("Login successful.")) *> IO.unit
-        case errorResponse => handleErrorResponse(errorResponse, LoginCommand(client).run, client)
-      }
-    } yield ()
+    override def run: IO[Unit] =
+      for {
+        _ <- IO(println(
+          s"""Login
+             |Enter name:""".stripMargin))
+        name <- IO(scala.io.StdIn.readLine())
+        _ <- IO(println("Enter password:"))
+        password <- IO(scala.io.StdIn.readLine())
+        response <- client.expect[AnkiResponse](LoginRequest(name, password).send)
+          .handleErrorWith((_: Throwable) => IO(ErrorResponse("Connection error")))
+        _ <- response match {
+          case UserResponse(id, token) => IO(cookies.updateCredentials(id, token)) *>
+            IO(println("Login successful.")) *> IO.unit
+          case errorResponse => handleErrorResponse(errorResponse, LoginCommand(client).run, client)
+        }
+      } yield ()
   }
   final case class CreateDeckCommand(client: Client[IO])(implicit cookies: UserCookies) extends AnkiClientCommand {
-    override def run: IO[Unit] = for {
-      _ <- IO(println("Input deck name."))
-      description <- IO(scala.io.StdIn.readLine())
-      cardSet <- createCards(Set())
-      response <- client.expect[AnkiResponse](CreateDeckRequest(description, cardSet.toArray).send)
-        .handleErrorWith((_: Throwable) => IO(ErrorResponse(ErrorMessage)))
-      _ <- response match {
-        case AnkiGenericResponse(message) => IO(println(message)) *> process(client)
-        case errorResponse => handleErrorResponse(errorResponse, CreateDeckCommand(client).run, client)
-      }
-    } yield ()
+    override def run: IO[Unit] =
+      for {
+        _ <- IO(println("Input deck name."))
+        description <- IO(scala.io.StdIn.readLine())
+        cardSet <- createCards(Set())
+        response <- client.expect[AnkiResponse](CreateDeckRequest(description, cardSet.toArray).send)
+          .handleErrorWith((_: Throwable) => IO(ErrorResponse(ErrorMessage)))
+        _ <- response match {
+          case AnkiGenericResponse(message) => IO(println(message)) *> process(client)
+          case errorResponse => handleErrorResponse(errorResponse, CreateDeckCommand(client).run, client)
+        }
+      } yield ()
 
     private def createCards(cards: Set[Card]): IO[Set[Card]] =
       for {
@@ -95,20 +98,16 @@ object AnkiClientCommand {
   }
   final case class GenerateDeckCommand(client: Client[IO])(implicit cookies: UserCookies) extends AnkiClientCommand {
     override def run: IO[Unit] =
-      for {
-        _ <- IO(println("Input deck size as number."))
-        line <- IO(scala.io.StdIn.readLine())
-        _ <- Try(line.toInt) match {
+      IO(println("Input deck size as number.")) *>
+        IO(scala.io.StdIn.readLine()).map(line => Try(line.toInt)).map {
           case Success(size) => requestNewDeck(client, size)
           case Failure(_) => IO(println("Deck size should de integer.")) *> GenerateDeckCommand(client).run
         }
-      } yield ()
 
     private def requestNewDeck(client: Client[IO], size: Int)(implicit cookies: UserCookies): IO[Unit] =
-      for {
-        response <- client.expect[AnkiResponse](GenerateDeckRequest(size).send)
-          .handleErrorWith((_: Throwable) => IO(ErrorResponse(ErrorMessage)))
-        _ <- response match {
+      client.expect[AnkiResponse](GenerateDeckRequest(size).send)
+        .handleErrorWith((_: Throwable) => IO(ErrorResponse(ErrorMessage)))
+        .map {
           case DeckResponse(deck) => IO(cookies.updateDeck(deck)) *>
             IO(println(
               s"""Deck created successfully.
@@ -116,69 +115,66 @@ object AnkiClientCommand {
             doCancellable(SolveDeckCommand(client, FirstCard).run, client)
           case errorResponse => handleErrorResponse(errorResponse, GenerateDeckCommand(client).run, client)
         }
-      } yield ()
   }
 
   final case class LastGeneratedDeckCommand(client: Client[IO])(implicit cookies: UserCookies)
     extends AnkiClientCommand {
-    override def run: IO[Unit] = for {
-      response <- client.expect[AnkiResponse](LastDeckRequest().send)
+    override def run: IO[Unit] =
+      client.expect[AnkiResponse](LastDeckRequest().send)
         .handleErrorWith((_: Throwable) => IO(ErrorResponse(ErrorMessage)))
-      _ <- response match {
-        case DeckResponse(deck) => IO(cookies.updateDeck(deck)) *>
-          IO(println(
-            s"""Last generated deck received successfully.
-               |Solve deck '${cookies.deck.description}'""".stripMargin)) *>
-          doCancellable(SolveDeckCommand(client, FirstCard).run, client)
-        case errorResponse => handleErrorResponse(errorResponse, LastGeneratedDeckCommand(client).run, client)
-      }
-    } yield ()
+        .map {
+          case DeckResponse(deck) => IO(cookies.updateDeck(deck)) *>
+            IO(println(
+              s"""Last generated deck received successfully.
+                 |Solve deck '${cookies.deck.description}'""".stripMargin)) *>
+            doCancellable(SolveDeckCommand(client, FirstCard).run, client)
+          case errorResponse => handleErrorResponse(errorResponse, LastGeneratedDeckCommand(client).run, client)
+        }
   }
+
   final case class SolveDeckCommand(client: Client[IO], cardNumber: Int)(implicit cookies: UserCookies)
     extends AnkiClientCommand {
-    override def run: IO[Unit] = for {
-      size <- IO(cookies.cardList.size)
-      _ <- if (cardNumber > size)
-        IO(println("Deck solving completed.")) *> process(client) else
-        for {
-          _ <- IO(println(
-            s"""
-               |Question ${cardNumber}:""".stripMargin))
-          millis <- IO(System.currentTimeMillis())
-          _ <- IO(cookies.updateTimeStamp(millis))
-          _ <- IO(println(cookies.cardList(cardNumber - FirstCard).question))
-          _ <- IO(println(s"--Type 'N' for move to next card or 'E' for exit without save"))
-          next <- IO(scala.io.StdIn.readLine())
-          _ <- next match {
-            case "N" => IO(cookies.calculateDurationSec(System.currentTimeMillis())) *>
-              IO(println(
-                s"""
-                   |${cookies.cardList(cardNumber - FirstCard).answer}""".stripMargin)) *>
-              rateAnswer(cookies.cardList(cardNumber - FirstCard), client) *>
-              SolveDeckCommand(client, cardNumber + 1).run
-            case "E" => IO.unit
-            case _ => SolveDeckCommand(client, cardNumber).run
-          }
-        } yield ()
-    } yield ()
+    override def run: IO[Unit] =
+      for {
+        size <- IO(cookies.cardList.size)
+        _ <- if (cardNumber > size)
+          IO(println("Deck solving completed.")) *> process(client) else
+          for {
+            _ <- IO(println(
+              s"""
+                 |Question ${cardNumber}:""".stripMargin))
+            millis <- IO(System.currentTimeMillis())
+            _ <- IO(cookies.updateTimeStamp(millis))
+            _ <- IO(println(cookies.cardList(cardNumber - FirstCard).question))
+            _ <- IO(println(s"--Type 'N' for move to next card or 'E' for exit without save"))
+            next <- IO(scala.io.StdIn.readLine())
+            _ <- next match {
+              case "N" => IO(cookies.calculateDurationSec(System.currentTimeMillis())) *>
+                IO(println(
+                  s"""
+                     |${cookies.cardList(cardNumber - FirstCard).answer}""".stripMargin)) *>
+                rateAnswer(cookies.cardList(cardNumber - FirstCard), client) *>
+                SolveDeckCommand(client, cardNumber + 1).run
+              case "E" => IO.unit
+              case _ => SolveDeckCommand(client, cardNumber).run
+            }
+          } yield ()
+      } yield ()
 
     private def rateAnswer(card: Card, client: Client[IO])(implicit cookies: UserCookies): IO[Unit] =
-      for {
-        _ <- IO(println(
-          s"""Rate yourself:
-             |  F - fail;
-             |  H - hard;
-             |  G - good;
-             |  E - easy""".stripMargin))
-        rate <- IO(scala.io.StdIn.readLine())
-        _ <- rate match {
+      IO(println(
+        s"""Rate yourself:
+           |  F - fail;
+           |  H - hard;
+           |  G - good;
+           |  E - easy""".stripMargin)) *>
+        IO(scala.io.StdIn.readLine()).map {
           case "F" => saveRate(Fail, card, client)
           case "H" => saveRate(Hard, card, client)
           case "G" => saveRate(Good, card, client)
           case "E" => saveRate(Easy, card, client)
           case _ => rateAnswer(card, client)
         }
-      } yield ()
 
     private def saveRate(rate: Rate, card: Card, client: Client[IO])(implicit cookies: UserCookies): IO[Unit] =
       for {
@@ -202,36 +198,33 @@ object AnkiClientCommand {
 
   final case class EarliestFreshDeckCommand(client: Client[IO])(implicit cookies: UserCookies)
     extends AnkiClientCommand {
-    override def run: IO[Unit] = for {
-      response <- client.expect[AnkiResponse](EarliestFreshDeckRequest().send)
+    override def run: IO[Unit] =
+      client.expect[AnkiResponse](EarliestFreshDeckRequest().send)
         .handleErrorWith((_: Throwable) => IO(ErrorResponse(ErrorMessage)))
-      _ <- response match {
-        case DeckResponse(deck) => IO(cookies.updateDeck(deck)) *>
-          IO(println(
-            s"""Earliest deck with unsolved cards received successfully.
-               |Solve deck '${cookies.deck.description}'""".stripMargin)) *>
-          doCancellable(SolveDeckCommand(client, FirstCard).run, client)
-        case errorResponse => handleErrorResponse(errorResponse, EarliestFreshDeckCommand(client).run, client)
-      }
-    } yield ()
+        .map {
+          case DeckResponse(deck) => IO(cookies.updateDeck(deck)) *>
+            IO(println(
+              s"""Earliest deck with unsolved cards received successfully.
+                 |Solve deck '${cookies.deck.description}'""".stripMargin)) *>
+            doCancellable(SolveDeckCommand(client, FirstCard).run, client)
+          case errorResponse => handleErrorResponse(errorResponse, EarliestFreshDeckCommand(client).run, client)
+        }
   }
 
   final case class CardsForImproveCommand(client: Client[IO])(implicit cookies: UserCookies)
     extends AnkiClientCommand {
-    override def run: IO[Unit] = for {
-      _ <- IO(println("Input size limit of card set as number."))
-      line <- IO(scala.io.StdIn.readLine())
-      _ <- Try(line.toInt) match {
-        case Success(size) => requestCardsForImprove(client, size)
-        case Failure(_) => IO(println("Deck size should de integer.")) *> GenerateDeckCommand(client).run
-      }
-    } yield ()
+    override def run: IO[Unit] =
+      IO(println("Input size limit of card set as number.")) *>
+        IO(scala.io.StdIn.readLine()).map(line => Try(line.toInt))
+          .map {
+            case Success(size) => requestCardsForImprove(client, size)
+            case Failure(_) => IO(println("Deck size should de integer.")) *> GenerateDeckCommand(client).run
+          }
 
     private def requestCardsForImprove(client: Client[IO], limit: Int)(implicit cookies: UserCookies): IO[Unit] =
-      for {
-        response <- client.expect[AnkiResponse](CardsForImproveRequest(limit).send)
-          .handleErrorWith((_: Throwable) => IO(ErrorResponse(ErrorMessage)))
-        _ <- response match {
+      client.expect[AnkiResponse](CardsForImproveRequest(limit).send)
+        .handleErrorWith((_: Throwable) => IO(ErrorResponse(ErrorMessage)))
+        .map {
           case CardsForImproveResponse(cardsMap) => IO(cookies.updateTemporaryDeck(cardsMap)) *>
             IO(println(
               s"""Generated temporary set from cards which results should be improved.
@@ -239,19 +232,15 @@ object AnkiClientCommand {
             doCancellable(SolveDeckCommand(client, FirstCard).run, client)
           case errorResponse => handleErrorResponse(errorResponse, CardsForImproveCommand(client).run, client)
         }
-      } yield ()
   }
 
   private def doCancellable(operation: IO[Unit], client: Client[IO]): IO[Unit] =
-    for {
-      _ <- IO(println("Would you continue? Y - yes; N - no"))
-      answer <- IO(scala.io.StdIn.readLine())
-      _ <- answer match {
-        case "Y" => operation
+    IO(println("Would you continue? Y - yes; N - no")) *>
+      IO(scala.io.StdIn.readLine()).map {
+        case "Y" => operation *> IO.unit
         case "N" => process(client)
         case _ => doCancellable(operation, client)
       }
-    } yield ()
 
   private def handleErrorResponse(response: AnkiResponse, callbackF: IO[Unit], client: Client[IO]):
   IO[Unit] = response match {

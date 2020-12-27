@@ -66,11 +66,9 @@ object CardDispatcher {
           for {
             cardIdOpt <- cache.get(userId).map(_.map(_.keyAliasMap).flatMap(_.get(cardUUID)))
             saveResult <- cardIdOpt match {
-              case Some(cardId) =>
-                for {
-                  result <- DbManager.transactor.use(AnswerInfoProgram.createAnswerInfo(info, cardId).transact[IO])
-                    .handleErrorWith((_: Throwable) => IO(ServerError))
-                } yield result
+              case Some(cardId) => DbManager.transactor.use(
+                AnswerInfoProgram.createAnswerInfo(info, cardId).transact[IO])
+                .handleErrorWith((_: Throwable) => IO(ServerError))
               case None => IO(ServerError)
             }
           } yield saveResult match {
