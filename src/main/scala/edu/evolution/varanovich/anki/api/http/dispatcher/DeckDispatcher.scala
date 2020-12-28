@@ -31,7 +31,7 @@ object DeckDispatcher {
                request: Request[IO], cache: Cache[IO, String, UserSession])(implicit contextShift: ContextShift[IO]):
   IO[Response[IO]] = {
     if (size.matches("^[0-9]*$")) {
-      val generateDeck: (Int) => (String) => IO[Response[IO]] = (sizeInt: Int) => (userId: String) =>
+      val generateDeck: Int => String => IO[Response[IO]] = (sizeInt: Int) => (userId: String) =>
         for {
           deckOpt <- DeckBuilder.randomDeck(sizeInt)
           saveResult <- deckOpt match {
@@ -43,11 +43,15 @@ object DeckDispatcher {
           case (Some(deck), _) => Response(Status.Created).withEntity(DeckResponse(deck))
           case (None, _) => Response(Status.Accepted).withEntity(ErrorResponse(s"Cannot generate deck."))
         }
-      Try(size.toInt) match {
-        case Success(sizeInt) => if ((sizeInt >= MinDeckLength) && (sizeInt <= MaxDeckLength))
-          executeAuthenticated(request, cache, generateDeck.apply(sizeInt)) else
+
+      val generateValidated: Int => IO[Response[IO]] = (size: Int) =>
+        if ((size >= MinDeckLength) && (size <= MaxDeckLength))
+          executeAuthenticated(request, cache, generateDeck.apply(size)) else
           IO(Response(Status.Accepted)
             .withEntity(ErrorResponse(s"Wrong deck size. Check if size in range $MinDeckLength..$MaxDeckLength.")))
+
+      Try(size.toInt) match {
+        case Success(sizeInt) => generateValidated(sizeInt)
         case Failure(_) =>
           IO(Response(Status.Accepted).withEntity(ErrorResponse(s"Deck size string is to long.")))
       }
@@ -71,12 +75,12 @@ object DeckDispatcher {
   IO[Response[IO]] = {
     val saveDeck: String => IO[Response[IO]] = (userId: String) => {
       val saveToDatabase: Deck => IO[Response[IO]] = (deck: Deck) =>
-      saveDeckWithCards(deck, userId, cache).map {
-        case ServerError => ServerErrorResponse
-        case value => if (value == deck.cards.size)
-          Response(Status.Created).withEntity(AnkiGenericResponse("Deck is saved.")) else
-          Response(Status.Accepted).withEntity(ErrorResponse("Unknown error. Deck not saved."))
-      }
+        saveDeckWithCards(deck, userId, cache).map {
+          case ServerError => ServerErrorResponse
+          case value => if (value == deck.cards.size)
+            Response(Status.Created).withEntity(AnkiGenericResponse("Deck is saved.")) else
+            Response(Status.Accepted).withEntity(ErrorResponse("Unknown error. Deck not saved."))
+        }
       executeValidated(request, saveToDatabase)
     }
     executeAuthenticated(request, cache, saveDeck)

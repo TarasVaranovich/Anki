@@ -84,6 +84,12 @@ object CardDispatcher {
   def doCardsForImprove(request: Request[IO],
                         cache: Cache[IO, String, UserSession],
                         limit: String)(implicit contextShift: ContextShift[IO]): IO[Response[IO]] = {
+    val takeIfNotEnough: (Int, Int, List[Int]) => IO[List[(Int, Card)]] =
+      (given: Int, required: Int, fromDecks: List[Int]) =>
+        if (given < required) DbManager.transactor.use(
+          readCardInfoWithSlowestSufficientAnswer(fromDecks, (required - given)).transact[IO])
+          .handleErrorWith((_: Throwable) => IO(List())) else IO(List())
+
     if (limit.matches("^[0-9]*$")) {
       val selectCardsForImprove: String => IO[Response[IO]] = (userId: String) =>
         for {
@@ -97,9 +103,7 @@ object CardDispatcher {
             readCardInfoListWithInsufficientAnswer(deckIdList, limit.toInt).transact[IO])
             .handleErrorWith((_: Throwable) => IO(List()))
           sampleSize <- IO(insufficientCardList.size)
-          sufficientCardList <- if (sampleSize < limit.toInt) DbManager.transactor.use(
-            readCardInfoWithSlowestSufficientAnswer(deckIdList, (limit.toInt - sampleSize)).transact[IO])
-            .handleErrorWith((_: Throwable) => IO(List())) else IO(List())
+          sufficientCardList <- takeIfNotEnough(sampleSize, limit.toInt, deckIdList)
           resultList <- IO((insufficientCardList ++ sufficientCardList).distinct)
           resultSequentialIdList <- IO(resultList.map { case (id, _) => id })
           resultCardList <- IO(resultList.map { case (_, card) => card })

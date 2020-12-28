@@ -6,12 +6,12 @@ import java.time.format.DateTimeFormatter
 import cats.effect.{ContextShift, IO}
 import doobie.implicits._
 import edu.evolution.varanovich.anki.db.DbManager
-import edu.evolution.varanovich.anki.db.program.service.ServiceProgram.{readMaxId, readRowsCount}
 import edu.evolution.varanovich.anki.db.program.entity.AdjectiveProgram.readAdjectiveById
 import edu.evolution.varanovich.anki.db.program.entity.NounProgram.readNounById
 import edu.evolution.varanovich.anki.db.program.entity.PhraseProgram.readPhraseById
 import edu.evolution.varanovich.anki.db.program.entity.PrepositionProgram.readPrepositionById
 import edu.evolution.varanovich.anki.db.program.entity.VerbProgram.readVerbById
+import edu.evolution.varanovich.anki.db.program.service.ServiceProgram.{readMaxId, readRowsCount}
 import edu.evolution.varanovich.anki.domain.DeckBuilder.Alias._
 import edu.evolution.varanovich.anki.model.{Card, Deck, PartOfSpeech}
 import edu.evolution.varanovich.anki.utility.VocabularyConfig.AvailablePartsOfSpeechCount
@@ -89,17 +89,21 @@ object DeckBuilder {
       verbCountOpt <- DbManager.transactor.use(readRowsCount(Verb.name).transact[IO])
       verbCount <- IO(verbCountOpt.getOrElse(0))
     } yield {
-      val summary = adjectiveCount + nounCount + phraseCount + prepositionCount + verbCount
-      if ((summary >= cardCount) && (cardCount >= AvailablePartsOfSpeechCount)) {
-        val averagePartitionSize = Math.floor(cardCount / AvailablePartsOfSpeechCount).toInt
-        val remain: Int = cardCount - averagePartitionSize * AvailablePartsOfSpeechCount
-        if ((adjectiveCount :: nounCount :: phraseCount :: prepositionCount :: verbCount :: Nil)
-          .forall(count => count >= averagePartitionSize) &&
-          (verbCount >= (averagePartitionSize + AvailablePartsOfSpeechCount))) {
-          Partition(averagePartitionSize, averagePartitionSize + remain)
-        } else Partition.empty
-      } else Partition.empty
+      val counts = adjectiveCount :: nounCount :: phraseCount :: prepositionCount :: verbCount :: Nil
+      calculatePartition(counts, verbCount, cardCount)
     }
+  }
+
+  private def calculatePartition(counts: List[Int], supporterCount: Int, cardCount: Int): Partition = {
+    val summary = counts.sum
+    if ((summary >= cardCount) && (cardCount >= AvailablePartsOfSpeechCount)) {
+      val averagePartitionSize = Math.floor(cardCount / AvailablePartsOfSpeechCount).toInt
+      val remain: Int = cardCount - averagePartitionSize * AvailablePartsOfSpeechCount
+      if (counts.forall(count => count >= averagePartitionSize) &&
+        (supporterCount >= (averagePartitionSize + AvailablePartsOfSpeechCount))) {
+        Partition(averagePartitionSize, averagePartitionSize + remain)
+      } else Partition.empty
+    } else Partition.empty
   }
 
   private def getRandomPartOfSpeechSet(count: Int,
