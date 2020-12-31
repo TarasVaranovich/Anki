@@ -10,6 +10,8 @@ scalacOptions ++= Seq(
   "-Ymacro-annotations"
 )
 
+conflictManager := ConflictManager.default
+
 val catsVersion = "2.2.0"
 val catsTestVersion = "0.4.1"
 val circeVersion = "0.13.0"
