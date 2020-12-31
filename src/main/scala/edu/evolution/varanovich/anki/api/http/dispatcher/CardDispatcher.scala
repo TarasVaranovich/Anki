@@ -2,10 +2,11 @@ package edu.evolution.varanovich.anki.api.http.dispatcher
 
 import java.util.UUID
 
-import cats.effect.{ContextShift, IO}
+import cats.effect.{ContextShift, IO, Sync}
 import doobie.implicits._
 import edu.evolution.varanovich.anki.api.http.AnkiErrorCode.{OperationSuccess, ServerError}
 import edu.evolution.varanovich.anki.api.http.AnkiServer.ServerErrorResponse
+import edu.evolution.varanovich.anki.api.http.dispatcher.DeckDispatcher.logger
 import edu.evolution.varanovich.anki.api.http.dispatcher.DispatcherUtility.executeAuthenticated
 import edu.evolution.varanovich.anki.api.http.protocol.AnkiRequest.CreateAnswerInfoRequest
 import edu.evolution.varanovich.anki.api.http.protocol.AnkiResponse.{AnkiGenericResponse, CardsForImproveResponse, ErrorResponse}
@@ -16,12 +17,15 @@ import edu.evolution.varanovich.anki.db.program.domain.AnswerInfoProgram
 import edu.evolution.varanovich.anki.db.program.domain.CardProgram._
 import edu.evolution.varanovich.anki.db.program.domain.DeckProgram._
 import edu.evolution.varanovich.anki.model.{AnswerInfo, Card}
+import io.chrisdavenport.log4cats.slf4j.Slf4jLogger
 import io.circe.generic.codec.DerivedAsObjectCodec.deriveCodec
 import io.circe.parser.decode
 import org.http4s.circe.CirceEntityCodec.circeEntityEncoder
 import org.http4s.{Request, Response, Status}
 
 object CardDispatcher {
+  private implicit def logger[F[_] : Sync] = Slf4jLogger.getLogger[F]
+
   def createAnswerInfo(request: Request[IO], cache: Cache[IO, String, UserSession])(implicit contextShift: ContextShift[IO]):
   IO[Response[IO]] = {
     val createInfo: String => IO[Response[IO]] = (userId: String) => {
@@ -32,19 +36,22 @@ object CardDispatcher {
             deckIdOpt <- userNameOpt match {
               case Some(name) => DbManager.transactor.use(
                 readDeckIdByDescriptionAndUserName(description, name).transact[IO])
-                .handleErrorWith((_: Throwable) => IO(None))
+                .handleErrorWith((ex: Throwable) =>
+                  logger[IO].error(ex)("Cannot find deck by description and user.") *> IO(None))
               case None => IO(None)
             }
             cardIdOpt <- deckIdOpt match {
               case Some(deckId) =>
                 DbManager.transactor.use(readCardIdByDeckIdAndContent(deckId, card).transact[IO])
-                  .handleErrorWith((_: Throwable) => IO(None))
+                  .handleErrorWith((ex: Throwable) =>
+                    logger[IO].error(ex)("Cannot find card by deck and content.") *> IO(None))
               case None => IO(None)
             }
             saveResult <- cardIdOpt match {
               case Some(cardId) =>
                 DbManager.transactor.use(AnswerInfoProgram.createAnswerInfo(info, cardId).transact[IO])
-                  .handleErrorWith((_: Throwable) => IO(ServerError))
+                  .handleErrorWith((ex: Throwable) =>
+                    logger[IO].error(ex)("Cannot save answer info.") *> IO(ServerError))
               case None => IO(ServerError)
             }
           } yield saveResult match {
@@ -68,7 +75,8 @@ object CardDispatcher {
             saveResult <- cardIdOpt match {
               case Some(cardId) => DbManager.transactor.use(
                 AnswerInfoProgram.createAnswerInfo(info, cardId).transact[IO])
-                .handleErrorWith((_: Throwable) => IO(ServerError))
+                .handleErrorWith((ex: Throwable) =>
+                  logger[IO].error(ex)("Cannot save answer info.") *> IO(ServerError))
               case None => IO(ServerError)
             }
           } yield saveResult match {
@@ -88,7 +96,8 @@ object CardDispatcher {
       (given: Int, required: Int, fromDecks: List[Int]) =>
         if (given < required) DbManager.transactor.use(
           readCardInfoWithSlowestSufficientAnswer(fromDecks, (required - given)).transact[IO])
-          .handleErrorWith((_: Throwable) => IO(List())) else IO(List())
+          .handleErrorWith((ex: Throwable) =>
+            logger[IO].error(ex)("Cannot read card info with slowest answer.") *> IO(List())) else IO(List())
 
     if (limit.matches("^[0-9]*$")) {
       val selectCardsForImprove: String => IO[Response[IO]] = (userId: String) =>
@@ -96,12 +105,14 @@ object CardDispatcher {
           userNameOpt <- cache.get(userId).map(_.map(_.userName))
           deckIdList <- userNameOpt match {
             case Some(name) => DbManager.transactor.use(readDeckIdListByUserName(name).transact[IO])
-              .handleErrorWith((_: Throwable) => IO(List()))
+              .handleErrorWith((ex: Throwable) =>
+                logger[IO].error(ex)("Cannot receive decks by user.") *> IO(List()))
             case None => IO(List())
           }
           insufficientCardList <- DbManager.transactor.use(
             readCardInfoListWithInsufficientAnswer(deckIdList, limit.toInt).transact[IO])
-            .handleErrorWith((_: Throwable) => IO(List()))
+            .handleErrorWith((ex: Throwable) =>
+              logger[IO].error(ex)("Cannot read card infos with insufficient answer") *> IO(List()))
           sampleSize <- IO(insufficientCardList.size)
           sufficientCardList <- takeIfNotEnough(sampleSize, limit.toInt, deckIdList)
           resultList <- IO((insufficientCardList ++ sufficientCardList).distinct)

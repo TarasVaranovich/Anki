@@ -14,6 +14,8 @@ conflictManager := ConflictManager.default
 
 val catsVersion = "2.2.0"
 val catsTestVersion = "0.4.1"
+val log4CatsVersion = "1.1.1"
+val logbackVersion = "1.2.3"
 val circeVersion = "0.13.0"
 val http4sVersion = "0.21.7"
 val doobieVersion = "0.9.4"
@@ -32,6 +34,9 @@ libraryDependencies ++= Seq(
   "org.scalatest" %% "scalatest" % scalaTestVersion % Test,
   "org.typelevel" %% "cats-core" % catsVersion,
   "org.typelevel" %% "cats-effect" % catsVersion,
+  "ch.qos.logback" % "logback-classic" % logbackVersion % Runtime,
+  "io.chrisdavenport" %% "log4cats-core" % log4CatsVersion,
+  "io.chrisdavenport" %% "log4cats-slf4j" % log4CatsVersion,
   "org.tpolecat" %% "doobie-core" % doobieVersion,
   "org.tpolecat" %% "doobie-hikari" % doobieVersion,
   "org.tpolecat" %% "doobie-postgres" % doobieVersion,

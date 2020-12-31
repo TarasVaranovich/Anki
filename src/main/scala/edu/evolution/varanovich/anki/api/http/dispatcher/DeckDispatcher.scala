@@ -1,6 +1,6 @@
 package edu.evolution.varanovich.anki.api.http.dispatcher
 
-import cats.effect.{ContextShift, IO}
+import cats.effect.{ContextShift, IO, Sync}
 import cats.implicits.catsSyntaxApply
 import doobie.implicits._
 import edu.evolution.varanovich.anki.api.http.AnkiErrorCode._
@@ -19,6 +19,7 @@ import edu.evolution.varanovich.anki.domain.DeckBuilder.GeneratedDeckName
 import edu.evolution.varanovich.anki.model.Deck
 import edu.evolution.varanovich.anki.utility.AnkiConfig.{MaxDeckLength, MinDeckLength}
 import edu.evolution.varanovich.anki.validator.DeckValidator
+import io.chrisdavenport.log4cats.slf4j.Slf4jLogger
 import io.circe.generic.codec.DerivedAsObjectCodec.deriveCodec
 import io.circe.parser.decode
 import org.http4s.circe.CirceEntityCodec.circeEntityEncoder
@@ -27,6 +28,8 @@ import org.http4s.{Request, Response, Status}
 import scala.util.{Failure, Success, Try}
 
 object DeckDispatcher {
+  private implicit def logger[F[_] : Sync] = Slf4jLogger.getLogger[F]
+
   def doRandom(size: String,
                request: Request[IO], cache: Cache[IO, String, UserSession])(implicit contextShift: ContextShift[IO]):
   IO[Response[IO]] = {
@@ -52,7 +55,7 @@ object DeckDispatcher {
 
       Try(size.toInt) match {
         case Success(sizeInt) => generateValidated(sizeInt)
-        case Failure(_) =>
+        case Failure(failure) => logger[IO].error(failure)("Cannot read deck size.")
           IO(Response(Status.Accepted).withEntity(ErrorResponse(s"Deck size string is to long.")))
       }
 
@@ -112,12 +115,14 @@ object DeckDispatcher {
         userNameOpt <- cache.get(userId).map(_.map(_.userName))
         deckInfoOpt <- userNameOpt match {
           case Some(name) => DbManager.transactor.use(readEarliestFreshDeckInfo(name).transact[IO])
-            .handleErrorWith((_: Throwable) => IO(None))
+            .handleErrorWith((ex: Throwable) =>
+              logger[IO].error(ex)("Cannot read earliest fresh deck info.") *> IO(None))
           case None => IO(None)
         }
         cardList <- deckInfoOpt match {
           case Some((id, _)) => DbManager.transactor.use(readCardList(id).transact[IO])
-            .handleErrorWith((_: Throwable) => IO(List()))
+            .handleErrorWith((ex: Throwable) =>
+              logger[IO].error(ex)("Cannot receive card list by deck.") *> IO(List()))
           case None => IO(List())
         }
         description <- IO(deckInfoOpt.map { case (_, description) => description }.getOrElse(""))
@@ -135,20 +140,23 @@ object DeckDispatcher {
       userNameOpt <- cache.get(userId).map(_.map(_.userName))
       userIdOpt <- userNameOpt match {
         case Some(name) => DbManager.transactor.use(readSequentialId(name).transact[IO])
-          .handleErrorWith((_: Throwable) => IO(None))
+          .handleErrorWith((ex: Throwable) =>
+            logger[IO].error(ex)("Cannot read user identifier.") *> IO(None))
         case None => IO(None)
       }
       deckIdOpt <- (userIdOpt, userNameOpt) match {
         case (Some(userId), Some(name)) =>
           DbManager.transactorBlock(
             createDeck(deck, userId) *> readDeckIdByDescriptionAndUserName(deck.description, name))
-            .handleErrorWith((_: Throwable) => IO(None))
+            .handleErrorWith((ex: Throwable) =>
+              logger[IO].error(ex)("Cannot read deck by by description and user.") *> IO(None))
         case (_, _) => IO(None)
       }
       saveResult <- deckIdOpt match {
         case Some(deckId) =>
           DbManager.transactor.use(createCardList(deck.cards.toList, deckId).transact[IO])
-            .handleErrorWith((_: Throwable) => IO(ServerError))
+            .handleErrorWith((ex: Throwable) =>
+              logger[IO].error(ex)("Cannot save card list.") *> IO(ServerError))
         case None => IO(ServerError)
       }
     } yield saveResult
@@ -162,12 +170,14 @@ object DeckDispatcher {
       deckInfoOpt <- nameOpt match {
         case Some(name) => DbManager
           .transactor.use(readLastDeckInfoByPatternAndUserName(pattern, name).transact[IO])
-          .handleErrorWith((_: Throwable) => IO(None))
+          .handleErrorWith((ex: Throwable) =>
+            logger[IO].error(ex)("Cannot find last deck info by pattern and user name.") *> IO(None))
         case None => IO(None)
       }
       cardList <- deckInfoOpt match {
         case Some((id, _)) => DbManager.transactor.use(readCardList(id).transact[IO])
-          .handleErrorWith((_: Throwable) => IO(List()))
+          .handleErrorWith((ex: Throwable) =>
+            logger[IO].error(ex)("Cannot receive deck card list.") *> IO(List()))
         case None => IO(List())
       }
       description <- IO(deckInfoOpt.map { case (_, description) => description }.getOrElse(""))

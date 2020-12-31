@@ -11,7 +11,7 @@ object AnkiClient extends IOApp {
   private implicit val cookies: UserCookies = new UserCookies()
 
   def process(client: Client[IO]): IO[Unit] =
-    IO(println(
+    IO(printAdjustable(
       s"""
          |Lets start Anki education
          |Choose menu option:
@@ -34,7 +34,7 @@ object AnkiClient extends IOApp {
       }
 
   def welcome(client: Client[IO]): IO[Unit] =
-    IO(println(
+    IO(printAdjustable(
       s"""Register as a new user or login.
          |  R - register;
          |  L - login;
@@ -48,9 +48,11 @@ object AnkiClient extends IOApp {
 
   override def run(args: List[String]): IO[ExitCode] =
     BlazeClientBuilder[IO](ExecutionContext.global).resource.use { client =>
-      IO(println(
+      IO(printAdjustable(
         s"""
            |Welcome to anki application!""".stripMargin)) *>
         welcome(client)
     }.as(ExitCode.Success)
+
+  def printAdjustable(line: String): Unit = println(Console.GREEN + line + Console.RESET)
 }

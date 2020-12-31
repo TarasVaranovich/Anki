@@ -1,13 +1,16 @@
 package edu.evolution.varanovich.anki.file
 
-import cats.effect.{IO, Resource}
+import cats.effect.{IO, Resource, Sync}
 import cats.implicits._
 import edu.evolution.varanovich.anki.file.FileAliases.stringValue
 import edu.evolution.varanovich.anki.utility.WordValidator.validTranslation
+import io.chrisdavenport.log4cats.slf4j.Slf4jLogger
 
 import scala.util.{Failure, Success, Try}
 
 object DataReader {
+  private implicit def logger[F[_] : Sync] = Slf4jLogger.getLogger[F]
+
   def readFromFile[A](fileName: String, parser: List[String] => Option[A]): IO[Seq[A]] = {
     val alias = fileName.split("/").last.split("-").head
     val fileAlias = FileAliases.valueOf(alias)
@@ -15,7 +18,7 @@ object DataReader {
       case Success(source) => Resource
         .fromAutoCloseable(IO(source))
         .use(source => IO(source.getLines().flatMap(str => parser(extractParts(str, fileAlias))).toSeq))
-      case Failure(_) => IO(Seq())
+      case Failure(failure) => logger[IO].error(failure)("Cannot access file.") *> IO(Seq())
     }
   }
 
