@@ -26,10 +26,16 @@ object UserDispatcher {
         token <- IO(generateToken)
         userOpt <- DbManager.transactor.use(readUser(user.name).transact[IO])
           .handleErrorWith((_: Throwable) => IO(None))
-        saveResult <- if (userOpt.isEmpty) DbManager.transactor.use(createUser(user).transact[IO])
-          .handleErrorWith((_: Throwable) => IO(ServerError)) else IO(AlreadyExists)
-        idOpt <- if (saveResult == OperationSuccess) DbManager.transactor.use(readUserId(user.name).transact[IO])
-        else IO(None)
+        saveResult <- userOpt match {
+          case Some(_) => IO(AlreadyExists)
+          case None => DbManager.transactor.use(createUser(user).transact[IO])
+            .handleErrorWith((_: Throwable) => IO(ServerError))
+        }
+        idOpt <- saveResult match {
+          case OperationSuccess => DbManager.transactor.use(readUserId(user.name).transact[IO])
+            .handleErrorWith((_: Throwable) => IO(None))
+          case _ => IO(None)
+        }
         registerResult <- idOpt match {
           case Some(id) => cache.put(id, UserSession(token, user.privileges, user.name)) *> IO(OperationSuccess)
           case None => IO(saveResult)
@@ -63,19 +69,7 @@ object UserDispatcher {
         isLocked <- DbManager.transactor.use(isLockedUser(user).transact[IO])
           .handleErrorWith((_: Throwable) => IO(false))
         loginResult <- (passwordOpt, idOpt, isLocked) match {
-          case (Some(password), Some(id), false) =>
-            if (password == encryptSHA256(user.password))
-              cache.put(id, UserSession(token, user.privileges, user.name)) *> IO(OperationSuccess)
-            else attemptsOpt match {
-              case Some(attempts) => {
-                if (attempts > 0)
-                  cache.put(id, UserSession("", user.privileges, user.name, (attempts - 1))) *> IO(WrongPassword)
-                else
-                  DbManager.transactor.use(lockUser(id).transact[IO])
-                    .redeem((_: Throwable) => IO(ServerError), (_: Int) => WrongPassword)
-              }
-              case None => cache.put(id, UserSession("", user.privileges, "")) *> IO(WrongPassword)
-            }
+          case (Some(password), Some(id), false) => tryLogin(password, token, user, attemptsOpt, id, cache)
           case (_, None, false) => IO(NotExists)
           case (_, _, true) => IO(Blocked)
           case (_, _, _) => IO(ServerError)
@@ -90,6 +84,28 @@ object UserDispatcher {
       }
     executeValidated(request, login)
   }
+
+  private def tryLogin(password: String,
+                       token: String,
+                       user: User,
+                       attemptsOpt: Option[Int],
+                       id: String,
+                       cache: Cache[IO, String, UserSession])(implicit contextShift: ContextShift[IO]): IO[Int] =
+    if (password == encryptSHA256(user.password))
+      cache.put(id, UserSession(token, user.privileges, user.name)) *> IO(OperationSuccess)
+    else attemptsOpt match {
+      case Some(attempts) => reduceAttempts(user, attempts, id, cache)
+      case None => cache.put(id, UserSession("", user.privileges, "")) *> IO(WrongPassword)
+    }
+
+  private def reduceAttempts(user: User,
+                             attempts: Int,
+                             id: String,
+                             cache: Cache[IO, String, UserSession])(implicit contextShift: ContextShift[IO]): IO[Int] =
+    if (attempts > 0)
+      cache.put(id, UserSession("", user.privileges, user.name, (attempts - 1))) *> IO(WrongPassword)
+    else DbManager.transactor.use(lockUser(id).transact[IO])
+      .redeem((_: Throwable) => ServerError, (_: Int) => WrongPassword)
 
   private def executeValidated(request: Request[IO], function: User => IO[Response[IO]]): IO[Response[IO]] =
     request.as[String].flatMap {

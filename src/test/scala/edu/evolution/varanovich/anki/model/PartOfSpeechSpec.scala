@@ -41,10 +41,11 @@ class PartOfSpeechSpec extends AnyFlatSpec {
   it should "sort parts of speech by value" in {
     val words = List(highAdjectiveOpt, coastNounOpt, howAreYouPhraseOpt, abovePrepositionOpt, consistVerbOpt,
       clumsyAdjectiveOpt, bigAdjectiveOpt)
-    val values: List[PartOfSpeech] = for {
-      word <- words
-      value <- word
-    } yield value
+    val values: List[PartOfSpeech] =
+      for {
+        word <- words
+        value <- word
+      } yield value
     assert(values.sorted.map(_.getValue) == List("How are you?", "above", "big", "clumsy", "coast", "consist", "high"))
   }
 
