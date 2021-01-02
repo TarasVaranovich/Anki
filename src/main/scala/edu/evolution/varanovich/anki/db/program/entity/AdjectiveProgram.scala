@@ -2,10 +2,11 @@ package edu.evolution.varanovich.anki.db.program.entity
 
 import doobie.implicits.toSqlInterpolator
 import doobie.{ConnectionIO, Fragment, Update}
+import edu.evolution.varanovich.anki.config.VocabularyConfig
 import edu.evolution.varanovich.anki.model.PartOfSpeech.Adjective
-import edu.evolution.varanovich.anki.utility.VocabularyConfig.{MaxEngWordLength, MaxRusWordLength}
 
 object AdjectiveProgram {
+  private val config = VocabularyConfig.load
   private val insertFragment: Fragment =
     fr"INSERT INTO adjective(value,translation,transcription,comparative,superlative) VALUES (?,?,?,?,?)"
   private val selectFragment: Fragment =
@@ -15,11 +16,11 @@ object AdjectiveProgram {
     val query: String =
       s"""CREATE TABLE adjective(
          |id SERIAL PRIMARY KEY,
-         |value VARCHAR($MaxEngWordLength) UNIQUE NOT NULL,
-         |translation VARCHAR($MaxRusWordLength) NOT NULL,
-         |transcription VARCHAR($MaxEngWordLength),
-         |comparative VARCHAR($MaxEngWordLength),
-         |superlative VARCHAR($MaxEngWordLength));""".stripMargin
+         |value VARCHAR(${config.maxEngWordLength}) UNIQUE NOT NULL,
+         |translation VARCHAR(${config.maxRusWordLength}) NOT NULL,
+         |transcription VARCHAR(${config.maxEngWordLength}),
+         |comparative VARCHAR(${config.maxEngWordLength}),
+         |superlative VARCHAR(${config.maxEngWordLength}));""".stripMargin
     Fragment.const(query).update.run
   }
 

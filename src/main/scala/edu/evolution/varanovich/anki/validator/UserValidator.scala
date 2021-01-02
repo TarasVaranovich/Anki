@@ -2,18 +2,21 @@ package edu.evolution.varanovich.anki.validator
 
 import cats.data.ValidatedNec
 import cats.implicits.{catsSyntaxTuple3Semigroupal, catsSyntaxValidatedIdBinCompat0}
+import edu.evolution.varanovich.anki.config.AnkiConfig
 import edu.evolution.varanovich.anki.model.{Privileges, User}
-import edu.evolution.varanovich.anki.utility.AnkiConfig._
 
 object UserValidator {
+  private val config = AnkiConfig.load
   case object UserNameLengthError extends ValidationError {
-    override def message: String = s"User name should have length $MinUserNameLength .. $MaxUserNameLength"
+    override def message: String =
+      s"User name should have length ${config.minUserNameLength} .. ${config.maxUserNameLength}"
   }
   case object UserNamePatternError extends ValidationError {
     override def message: String = "User name starts from eng/rus ABC letter, can contain hyphens and digits"
   }
   case object PasswordLengthError extends ValidationError {
-    override def message: String = s"Password should have length $MinPasswordLength .. $MaxPasswordLength"
+    override def message: String =
+      s"Password should have length ${config.minPasswordLength} .. ${config.maxPasswordLength}"
   }
   case object PasswordPatternError extends ValidationError {
     override def message: String =
@@ -32,7 +35,7 @@ object UserValidator {
       .mapN((name, password, privileges) => User(name, password, Privileges.withName(privileges)))
 
   private def validateNameLength(name: String): AllErrorsOr[String] =
-    if ((MinUserNameLength <= name.length) && (name.length <= MaxUserNameLength)) name.validNec else
+    if ((config.minUserNameLength <= name.length) && (name.length <= config.maxUserNameLength)) name.validNec else
       UserNameLengthError.invalidNec
 
   private def validateNamePattern(name: String): AllErrorsOr[String] =
@@ -40,7 +43,8 @@ object UserValidator {
       UserNamePatternError.invalidNec
 
   private def validatePasswordLength(password: String): AllErrorsOr[String] =
-    if ((MinPasswordLength <= password.length) && (password.length <= MaxPasswordLength)) password.validNec else
+    if ((config.minPasswordLength <= password.length) && (password.length <= config.maxPasswordLength))
+      password.validNec else
       PasswordLengthError.invalidNec
 
   private def validatePasswordPattern(password: String): AllErrorsOr[String] =

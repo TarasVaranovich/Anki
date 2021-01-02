@@ -2,16 +2,17 @@ package edu.evolution.varanovich.anki.db.program.domain
 
 import doobie.implicits.toSqlInterpolator
 import doobie.{ConnectionIO, Fragment}
+import edu.evolution.varanovich.anki.config.AnkiConfig
 import edu.evolution.varanovich.anki.model.Deck
-import edu.evolution.varanovich.anki.utility.AnkiConfig.MaxDeckDescriptionLength
 
 object DeckProgram {
+  private val maxDeckDescriptionLength = AnkiConfig.load.maxDeckDescriptionLength
   def createDeckTable: ConnectionIO[Int] = {
     val query: String =
       s"""CREATE TABLE deck(
          |id SERIAL PRIMARY KEY,
          |user_id INT REFERENCES anki_user(id_sequential) ON DELETE CASCADE,
-         |description VARCHAR($MaxDeckDescriptionLength) NOT NULL);""".stripMargin
+         |description VARCHAR($maxDeckDescriptionLength) NOT NULL);""".stripMargin
     Fragment.const(query).update.run
   }
 

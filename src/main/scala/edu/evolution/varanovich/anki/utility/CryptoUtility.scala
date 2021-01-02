@@ -3,7 +3,7 @@ package edu.evolution.varanovich.anki.utility
 import java.security.{MessageDigest, SecureRandom}
 import java.util.Base64
 
-import edu.evolution.varanovich.anki.api.http.ServerConfig.tokenSize
+import edu.evolution.varanovich.anki.config.ServerConfig
 
 object CryptoUtility {
   private val secureRandom = new SecureRandom()
@@ -15,7 +15,7 @@ object CryptoUtility {
     .mkString("Array(", ", ", ")")
 
   def generateToken: String = {
-    val randomBytes = new Array[Byte](tokenSize)
+    val randomBytes = new Array[Byte](ServerConfig.load.tokenSize)
     secureRandom.nextBytes(randomBytes)
     base64Encoder.encodeToString(randomBytes)
   }

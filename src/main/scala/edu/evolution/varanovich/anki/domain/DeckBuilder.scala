@@ -5,6 +5,7 @@ import java.time.format.DateTimeFormatter
 
 import cats.effect.{ContextShift, IO}
 import doobie.implicits._
+import edu.evolution.varanovich.anki.config.VocabularyConfig
 import edu.evolution.varanovich.anki.db.DbManager
 import edu.evolution.varanovich.anki.db.program.entity.AdjectiveProgram.readAdjectiveById
 import edu.evolution.varanovich.anki.db.program.entity.NounProgram.readNounById
@@ -14,7 +15,6 @@ import edu.evolution.varanovich.anki.db.program.entity.VerbProgram.readVerbById
 import edu.evolution.varanovich.anki.db.program.service.ServiceProgram.{readMaxId, readRowsCount}
 import edu.evolution.varanovich.anki.domain.DeckBuilder.Alias._
 import edu.evolution.varanovich.anki.model.{Card, Deck, PartOfSpeech}
-import edu.evolution.varanovich.anki.utility.VocabularyConfig.AvailablePartsOfSpeechCount
 
 import scala.util.Random
 
@@ -95,12 +95,13 @@ object DeckBuilder {
   }
 
   private def calculatePartition(counts: List[Int], supporterCount: Int, cardCount: Int): Partition = {
+    val availablePartsOfSpeechCount = VocabularyConfig.load.availablePartsOfSpeechCount
     val summary = counts.sum
-    if ((summary >= cardCount) && (cardCount >= AvailablePartsOfSpeechCount)) {
-      val averagePartitionSize = Math.floor(cardCount / AvailablePartsOfSpeechCount).toInt
-      val remain: Int = cardCount - averagePartitionSize * AvailablePartsOfSpeechCount
+    if ((summary >= cardCount) && (cardCount >= availablePartsOfSpeechCount)) {
+      val averagePartitionSize = Math.floor(cardCount / availablePartsOfSpeechCount).toInt
+      val remain: Int = cardCount - averagePartitionSize * availablePartsOfSpeechCount
       if (counts.forall(count => count >= averagePartitionSize) &&
-        (supporterCount >= (averagePartitionSize + AvailablePartsOfSpeechCount))) {
+        (supporterCount >= (averagePartitionSize + availablePartsOfSpeechCount))) {
         Partition(averagePartitionSize, averagePartitionSize + remain)
       } else Partition.empty
     } else Partition.empty

@@ -10,14 +10,16 @@ import edu.evolution.varanovich.anki.db.program.domain.DeckProgram._
 import edu.evolution.varanovich.anki.db.program.domain.UserProgram.{createUser, createUserTable, readSequentialId}
 import edu.evolution.varanovich.anki.db.program.service.ServiceProgram.{dropTable, dropType}
 import edu.evolution.varanovich.anki.model.{AnswerInfo, Rate}
-import edu.evolution.varanovich.anki.utility.AnkiConfig.MaxAnswerDuration
 import edu.evolution.varanovich.anki.{deckOpt, deckOptSecond, deckOptThird, userOpt, userOptSecond}
 import org.scalatest.freespec.AsyncFreeSpec
 import org.scalatest.matchers.should.Matchers
 import doobie.implicits._
+import edu.evolution.varanovich.anki.config.AnkiConfig
 import edu.evolution.varanovich.anki.model.Rate.{Easy, Fail, Good, Hard}
 
 class AnswerInfoProgramSpec extends AsyncFreeSpec with AsyncIOSpec with Matchers {
+  private val maxAnswerDuration = AnkiConfig.load.maxAnswerDuration
+
   "should successfully create and read answer infos" in {
     for {
       user <- IO.fromOption(userOpt)(throw new Exception("User not created."))
@@ -34,7 +36,7 @@ class AnswerInfoProgramSpec extends AsyncFreeSpec with AsyncIOSpec with Matchers
       firstCardIdOpt <- DbManager.transactor.use(readCardIdByDeckIdAndContent(deckId, deck.cards.head).transact[IO])
       firstCardId <- IO.fromOption(firstCardIdOpt)(throw new Exception("Card id not found"))
       firstAnswerInfoOne <- IO.fromOption(
-        AnswerInfo.from(Rate.Fail, MaxAnswerDuration))(throw new Exception("Answer Info not created"))
+        AnswerInfo.from(Rate.Fail, maxAnswerDuration))(throw new Exception("Answer Info not created"))
       firstAnswerInfoTwo <- IO.fromOption(
         AnswerInfo.from(Rate.Good, 10))(throw new Exception("Answer Info not created"))
 

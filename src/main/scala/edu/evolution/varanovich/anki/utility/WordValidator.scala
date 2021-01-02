@@ -1,32 +1,36 @@
 package edu.evolution.varanovich.anki.utility
 
-import edu.evolution.varanovich.anki.utility.VocabularyConfig.{MaxEngWordLength, MaxPhraseLength, MaxRusWordLength}
+import edu.evolution.varanovich.anki.config.VocabularyConfig
 
 object WordValidator {
+  private val maxEngWordLength = VocabularyConfig.load.maxEngWordLength
+  private val maxRusWordLength = VocabularyConfig.load.maxRusWordLength
+  private val maxPhraseLength = VocabularyConfig.load.maxPhraseLength
+
   /**
    * Value string can contain lower case letters from english ABC only with possible hyphen between
    */
   def validValue(value: String): Boolean =
-    value.matches("^[a-z]+[\\-]?[a-z]+$") && (value.length <= MaxEngWordLength)
+    value.matches("^[a-z]+[\\-]?[a-z]+$") && (value.length <= maxEngWordLength)
 
   /**
    * Value string can contain english letters from english ABC with possible hyphen or gap between
    */
   def validOptionalValue(value: String): Boolean =
-    value.isEmpty || value.matches("^[A-Za-z]+[\\-\\s]?[A-Za-z]+$") && (value.length <= MaxEngWordLength)
+    value.isEmpty || value.matches("^[A-Za-z]+[\\-\\s]?[A-Za-z]+$") && (value.length <= maxEngWordLength)
 
   /**
    * Value string can contain letters from english ABC only with possible hyphen
    */
   def validNoun(value: String): Boolean =
-    value.matches("^[A-Za-z]+[\\-]?[A-Za-z]+$") && (value.length <= MaxEngWordLength)
+    value.matches("^[A-Za-z]+[\\-]?[A-Za-z]+$") && (value.length <= maxEngWordLength)
 
   /**
    * Value string can contain letters from russian ABC only with possible hyphens, spaces and commas
    * String should start from letter and end with letter
    */
   def validTranslation(value: String): Boolean =
-    value.matches("^[ЁёА-я]{1}[ЁёА-я,.)(\\-\\s]*[ЁёА-я.)(]*$") && (value.length <= MaxRusWordLength)
+    value.matches("^[ЁёА-я]{1}[ЁёА-я,.)(\\-\\s]*[ЁёА-я.)(]*$") && (value.length <= maxRusWordLength)
 
   /**
    * Value string can start from english or russian ABC letter or number;
@@ -35,11 +39,11 @@ object WordValidator {
    */
   def validPhrase(value: String): Boolean =
     value.matches("^[A-Za-zЁёА-я0-9]{1}[A-Za-zЁёА-я0-9.,:;?!&%)(\"\'\\-\\s]*[A-Za-zЁёА-я0-9.?!%\"\']{1}$") &&
-      (value.length <= MaxPhraseLength)
+      (value.length <= maxPhraseLength)
 
   /**
    * Value string can be enclosed in brackets and contain symbols except . , ! ; ? 0-9 % @ "
    */
   def validTranscription(value: String): Boolean =
-    value.matches("^[\\[]{1}[^.,!;?0-9%@\"]*[\\]]{1}$") && value.length <= MaxEngWordLength
+    value.matches("^[\\[]{1}[^.,!;?0-9%@\"]*[\\]]{1}$") && value.length <= maxEngWordLength
 }

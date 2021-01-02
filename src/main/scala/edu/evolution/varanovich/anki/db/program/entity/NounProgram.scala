@@ -2,10 +2,11 @@ package edu.evolution.varanovich.anki.db.program.entity
 
 import doobie.implicits.toSqlInterpolator
 import doobie.{ConnectionIO, Fragment, Update}
+import edu.evolution.varanovich.anki.config.VocabularyConfig
 import edu.evolution.varanovich.anki.model.PartOfSpeech.Noun
-import edu.evolution.varanovich.anki.utility.VocabularyConfig.{MaxEngWordLength, MaxRusWordLength}
 
 object NounProgram {
+  private val config = VocabularyConfig.load
   private val insertFragment: Fragment =
     fr"INSERT INTO noun(value, translation, transcription, plural) VALUES (?,?,?,?)"
   private val selectFragment: Fragment = fr"SELECT value, translation, transcription, plural FROM noun"
@@ -14,10 +15,10 @@ object NounProgram {
     val query: String =
       s"""CREATE TABLE noun(
          |id SERIAL PRIMARY KEY,
-         |value VARCHAR($MaxEngWordLength) UNIQUE NOT NULL,
-         |translation VARCHAR($MaxRusWordLength) NOT NULL,
-         |transcription VARCHAR($MaxEngWordLength),
-         |plural VARCHAR($MaxEngWordLength));""".stripMargin
+         |value VARCHAR(${config.maxEngWordLength}) UNIQUE NOT NULL,
+         |translation VARCHAR(${config.maxRusWordLength}) NOT NULL,
+         |transcription VARCHAR(${config.maxEngWordLength}),
+         |plural VARCHAR(${config.maxEngWordLength}));""".stripMargin
     Fragment.const(query).update.run
   }
 

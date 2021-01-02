@@ -21,6 +21,7 @@ val http4sVersion = "0.21.7"
 val doobieVersion = "0.9.4"
 val scalaTestVersion = "3.3.0-SNAP2"
 val enumeratumVersion = "1.6.1"
+val pureconfigVersion = "0.14.0"
 libraryDependencies ++= Seq(
   "io.circe" %% "circe-core" % circeVersion,
   "io.circe" %% "circe-generic" % circeVersion,
@@ -42,7 +43,8 @@ libraryDependencies ++= Seq(
   "org.tpolecat" %% "doobie-postgres" % doobieVersion,
   "com.codecommit" %% "cats-effect-testing-scalatest" % catsTestVersion % Test,
   "com.beachape" %% "enumeratum" % enumeratumVersion,
-  "com.beachape" %% "enumeratum-circe" % enumeratumVersion
+  "com.beachape" %% "enumeratum-circe" % enumeratumVersion,
+  "com.github.pureconfig" %% "pureconfig" % pureconfigVersion
 )
 
 addCompilerPlugin("org.typelevel" %% "kind-projector" % "0.11.1" cross CrossVersion.full)

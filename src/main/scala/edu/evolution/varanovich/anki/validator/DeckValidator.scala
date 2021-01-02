@@ -2,21 +2,22 @@ package edu.evolution.varanovich.anki.validator
 
 import cats.data.ValidatedNec
 import cats.implicits.{catsSyntaxTuple2Semigroupal, catsSyntaxValidatedIdBinCompat0}
+import edu.evolution.varanovich.anki.config.AnkiConfig
 import edu.evolution.varanovich.anki.model.{Card, Deck}
-import edu.evolution.varanovich.anki.utility.AnkiConfig.{MaxDeckDescriptionLength, MaxDeckLength, MinDeckDescriptionLength, MinDeckLength}
 import edu.evolution.varanovich.anki.utility.WordValidator
-import edu.evolution.varanovich.anki.utility.WordValidator.{validOptionalValue, validPhrase, validTranscription, validTranslation, validValue}
+import edu.evolution.varanovich.anki.utility.WordValidator._
 
 object DeckValidator {
+  private val config = AnkiConfig.load
   case object DeckLengthError extends ValidationError {
-    override def message: String = s"Deck should consist from $MinDeckLength .. $MaxDeckLength cards"
+    override def message: String = s"Deck should consist from ${config.minDeckLength} .. ${config.maxDeckLength} cards"
   }
   case object DeckCardError extends ValidationError {
     override def message: String = s"Not all deck cards are parts of speech"
   }
   case object DeckDescriptionLengthError extends ValidationError {
     override def message: String =
-      s"Deck description should have length $MinDeckDescriptionLength .. $MaxDeckDescriptionLength"
+      s"Deck description should have length ${config.minDeckDescriptionLength} .. ${config.maxDeckDescriptionLength}"
   }
   case object DeckDescriptionPatternError extends ValidationError {
     override def message: String =
@@ -33,7 +34,7 @@ object DeckValidator {
       .mapN((cards, description) => Deck(cards.toSet, description))
 
   private def validateDeckLength(cards: List[Card]): AllErrorsOr[List[Card]] =
-    if ((MinDeckLength <= cards.length) && (cards.length <= MaxDeckLength)) cards.validNec else
+    if ((config.minDeckLength <= cards.length) && (cards.length <= config.maxDeckLength)) cards.validNec else
       DeckLengthError.invalidNec
 
   private def validateDeckCards(cards: List[Card]): AllErrorsOr[List[Card]] = {
@@ -46,7 +47,8 @@ object DeckValidator {
   }
 
   private def validateDeckDescriptionLength(description: String): AllErrorsOr[String] =
-    if ((MinDeckDescriptionLength <= description.length) && (description.length <= MaxDeckDescriptionLength))
+    if ((config.minDeckDescriptionLength <= description.length) &&
+      (description.length <= config.maxDeckDescriptionLength))
       description.validNec else DeckDescriptionLengthError.invalidNec
 
   private def validateDeckDescriptionPattern(description: String): AllErrorsOr[String] =

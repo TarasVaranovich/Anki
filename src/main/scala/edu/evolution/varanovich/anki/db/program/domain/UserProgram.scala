@@ -4,12 +4,13 @@ import java.util.UUID
 
 import doobie.implicits.toSqlInterpolator
 import doobie.{ConnectionIO, Fragment}
+import edu.evolution.varanovich.anki.config.AnkiConfig
 import edu.evolution.varanovich.anki.model.User
-import edu.evolution.varanovich.anki.utility.AnkiConfig.{MaxPasswordEncryptedLength, MaxUserNameLength}
 import edu.evolution.varanovich.anki.utility.CryptoUtility.encryptSHA256
 
 //TODO: refactor create user, lock/unlock user after introduction userDto with uuid
 object UserProgram {
+  private val config = AnkiConfig.load
   def createUserTable: ConnectionIO[Int] = {
     val query: String =
       s"""CREATE TYPE privileges_enum AS ENUM ('Admin', 'Member');
@@ -17,8 +18,8 @@ object UserProgram {
          |id UUID PRIMARY KEY,
          |id_sequential SERIAL UNIQUE,
          |locked BOOLEAN DEFAULT FALSE,
-         |name VARCHAR($MaxUserNameLength) UNIQUE NOT NULL,
-         |password VARCHAR($MaxPasswordEncryptedLength) NOT NULL,
+         |name VARCHAR(${config.maxUserNameLength}) UNIQUE NOT NULL,
+         |password VARCHAR(${config.maxPasswordEncryptedLength}) NOT NULL,
          |privileges privileges_enum NOT NULL);""".stripMargin
     Fragment.const(query).update.run
   }

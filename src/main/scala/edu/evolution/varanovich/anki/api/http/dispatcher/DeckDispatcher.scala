@@ -10,6 +10,7 @@ import edu.evolution.varanovich.anki.api.http.protocol.AnkiRequest._
 import edu.evolution.varanovich.anki.api.http.protocol.AnkiResponse._
 import edu.evolution.varanovich.anki.api.session.Session.Cache
 import edu.evolution.varanovich.anki.api.session.UserSession
+import edu.evolution.varanovich.anki.config.AnkiConfig
 import edu.evolution.varanovich.anki.db.DbManager
 import edu.evolution.varanovich.anki.db.program.domain.CardProgram.{createCardList, readCardList}
 import edu.evolution.varanovich.anki.db.program.domain.DeckProgram._
@@ -17,7 +18,6 @@ import edu.evolution.varanovich.anki.db.program.domain.UserProgram.readSequentia
 import edu.evolution.varanovich.anki.domain.DeckBuilder
 import edu.evolution.varanovich.anki.domain.DeckBuilder.GeneratedDeckName
 import edu.evolution.varanovich.anki.model.Deck
-import edu.evolution.varanovich.anki.utility.AnkiConfig.{MaxDeckLength, MinDeckLength}
 import edu.evolution.varanovich.anki.validator.DeckValidator
 import io.chrisdavenport.log4cats.slf4j.Slf4jLogger
 import io.circe.generic.codec.DerivedAsObjectCodec.deriveCodec
@@ -28,6 +28,7 @@ import org.http4s.{Request, Response, Status}
 import scala.util.{Failure, Success, Try}
 
 object DeckDispatcher {
+  private val config = AnkiConfig.load
   private implicit def logger[F[_] : Sync] = Slf4jLogger.getLogger[F]
 
   def doRandom(size: String,
@@ -48,10 +49,10 @@ object DeckDispatcher {
         }
 
       val generateValidated: Int => IO[Response[IO]] = (size: Int) =>
-        if ((size >= MinDeckLength) && (size <= MaxDeckLength))
+        if ((size >= config.minDeckLength) && (size <= config.maxDeckLength))
           executeAuthenticated(request, cache, generateDeck.apply(size)) else
-          IO(Response(Status.Accepted)
-            .withEntity(ErrorResponse(s"Wrong deck size. Check if size in range $MinDeckLength..$MaxDeckLength.")))
+          IO(Response(Status.Accepted).withEntity(ErrorResponse(
+            s"Wrong deck size. Check if size in range ${config.minDeckLength}..${config.maxDeckLength}.")))
 
       Try(size.toInt) match {
         case Success(sizeInt) => generateValidated(sizeInt)

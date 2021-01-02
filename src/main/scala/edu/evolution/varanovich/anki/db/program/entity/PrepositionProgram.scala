@@ -2,10 +2,11 @@ package edu.evolution.varanovich.anki.db.program.entity
 
 import doobie.implicits.toSqlInterpolator
 import doobie.{ConnectionIO, Fragment, Update}
+import edu.evolution.varanovich.anki.config.VocabularyConfig
 import edu.evolution.varanovich.anki.model.PartOfSpeech.Preposition
-import edu.evolution.varanovich.anki.utility.VocabularyConfig.{MaxEngWordLength, MaxRusWordLength}
 
 object PrepositionProgram {
+  private val config = VocabularyConfig.load
   private val insertFragment: Fragment = fr"INSERT INTO preposition(value, translation, transcription) VALUES(?, ?, ?)"
   private val selectFragment: Fragment = fr"SELECT value, translation, transcription FROM preposition"
 
@@ -13,9 +14,9 @@ object PrepositionProgram {
     val query: String =
       s"""CREATE TABLE preposition(
          |id SERIAL PRIMARY KEY,
-         |value VARCHAR($MaxEngWordLength) UNIQUE NOT NULL,
-         |translation VARCHAR($MaxRusWordLength) NOT NULL,
-         |transcription VARCHAR($MaxEngWordLength));""".stripMargin
+         |value VARCHAR(${config.maxEngWordLength}) UNIQUE NOT NULL,
+         |translation VARCHAR(${config.maxRusWordLength}) NOT NULL,
+         |transcription VARCHAR(${config.maxEngWordLength}));""".stripMargin
     Fragment.const(query).update.run
   }
 

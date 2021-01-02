@@ -1,11 +1,11 @@
 package edu.evolution.varanovich.anki.api.http
 
 import cats.effect.{ExitCode, IO, IOApp}
-import edu.evolution.varanovich.anki.api.http.ServerConfig._
 import edu.evolution.varanovich.anki.api.http.dispatcher.{CardDispatcher, DeckDispatcher, UserDispatcher}
 import edu.evolution.varanovich.anki.api.http.protocol.AnkiResponse.ErrorResponse
 import edu.evolution.varanovich.anki.api.session.Session.Cache
 import edu.evolution.varanovich.anki.api.session.UserSession
+import edu.evolution.varanovich.anki.config.ServerConfig
 import io.circe.generic.codec.DerivedAsObjectCodec.deriveCodec
 import org.http4s.circe.CirceEntityCodec.circeEntityEncoder
 import org.http4s.dsl.io.{->, /, GET, POST, Root}
@@ -17,6 +17,7 @@ import scala.concurrent.ExecutionContext
 import scala.concurrent.duration.DurationInt
 
 object AnkiServer extends IOApp {
+  private val config = ServerConfig.load
   val ServerErrorResponse: Response[IO] =
     Response(Status.Accepted).withEntity(ErrorResponse("Server error."))
 
@@ -39,13 +40,14 @@ object AnkiServer extends IOApp {
     ankiRoutes(cache)
   }.orNotFound
 
-  override def run(args: List[String]): IO[ExitCode] = for {
-    cache <- Cache.of[IO, String, UserSession](cacheExpiration.minutes, cacheInvalidation.minutes)
-    _ <- BlazeServerBuilder[IO](ExecutionContext.global)
-      .bindHttp(port = port, host = host)
-      .withHttpApp(httpApp(cache))
-      .serve
-      .compile
-      .drain
-  } yield ExitCode.Success
+  override def run(args: List[String]): IO[ExitCode] =
+    for {
+      cache <- Cache.of[IO, String, UserSession](config.cacheExpiration.minutes, config.cacheInvalidation.minutes)
+      _ <- BlazeServerBuilder[IO](ExecutionContext.global)
+        .bindHttp(port = config.port, host = config.host)
+        .withHttpApp(httpApp(cache))
+        .serve
+        .compile
+        .drain
+    } yield ExitCode.Success
 }

@@ -2,10 +2,11 @@ package edu.evolution.varanovich.anki.db.program.entity
 
 import doobie.implicits.toSqlInterpolator
 import doobie.{ConnectionIO, Fragment, Update}
+import edu.evolution.varanovich.anki.config.VocabularyConfig
 import edu.evolution.varanovich.anki.model.PartOfSpeech.Phrase
-import edu.evolution.varanovich.anki.utility.VocabularyConfig.MaxPhraseLength
 
 object PhraseProgram {
+  private val config = VocabularyConfig.load
   private val insertFragment: Fragment = fr"INSERT INTO phrase (value,translation) VALUES (?,?)"
   private val selectFragment: Fragment = fr"SELECT value, translation FROM phrase"
 
@@ -13,8 +14,8 @@ object PhraseProgram {
     val query: String =
       s"""CREATE TABLE phrase(
          |id SERIAL PRIMARY KEY,
-         |value VARCHAR($MaxPhraseLength) UNIQUE NOT NULL,
-         |translation VARCHAR($MaxPhraseLength) NOT NULL);""".stripMargin
+         |value VARCHAR(${config.maxPhraseLength}) UNIQUE NOT NULL,
+         |translation VARCHAR(${config.maxPhraseLength}) NOT NULL);""".stripMargin
     Fragment.const(query).update.run
   }
 

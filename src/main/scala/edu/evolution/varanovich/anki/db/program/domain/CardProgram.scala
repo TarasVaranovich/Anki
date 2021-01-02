@@ -6,9 +6,10 @@ import doobie.implicits.toSqlInterpolator
 import doobie.{ConnectionIO, Fragment, Fragments, Update}
 import edu.evolution.varanovich.anki.model.Rate.{Easy, Fail, Good, Hard}
 import edu.evolution.varanovich.anki.model.{Card, Rate}
-import edu.evolution.varanovich.anki.utility.AnkiConfig.MaxCardFieldLength
+import edu.evolution.varanovich.anki.config.{AnkiConfig}
 
 object CardProgram {
+  private val maxCardFieldLength = AnkiConfig.load.maxCardFieldLength
   private val insertFragment: Fragment = fr"INSERT INTO card(deck_id, question, answer) VALUES (?, ?, ?);"
 
   def createCardTable: ConnectionIO[Int] = {
@@ -16,8 +17,8 @@ object CardProgram {
       s"""CREATE TABLE card(
          |id SERIAL PRIMARY KEY,
          |deck_id INT REFERENCES deck(id) ON DELETE CASCADE,
-         |question VARCHAR($MaxCardFieldLength) NOT NULL,
-         |answer VARCHAR($MaxCardFieldLength) NOT NULL);""".stripMargin
+         |question VARCHAR($maxCardFieldLength) NOT NULL,
+         |answer VARCHAR($maxCardFieldLength) NOT NULL);""".stripMargin
     Fragment.const(query).update.run
   }
 
