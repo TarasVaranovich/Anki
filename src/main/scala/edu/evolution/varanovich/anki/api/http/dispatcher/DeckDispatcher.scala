@@ -21,9 +21,8 @@ import edu.evolution.varanovich.anki.model.Deck
 import edu.evolution.varanovich.anki.validator.DeckValidator
 import io.chrisdavenport.log4cats.slf4j.Slf4jLogger
 import io.circe.generic.codec.DerivedAsObjectCodec.deriveCodec
-import io.circe.parser.decode
-import org.http4s.circe.CirceEntityCodec.circeEntityEncoder
 import org.http4s.{Request, Response, Status}
+import org.http4s.circe.CirceEntityCodec.{circeEntityEncoder, _}
 
 import scala.util.{Failure, Success, Try}
 
@@ -94,17 +93,13 @@ object DeckDispatcher {
                       cache: Cache[IO, String, UserSession])(implicit contextShift: ContextShift[IO]):
   IO[Response[IO]] = {
     val lastGeneratedDeck: String => IO[Response[IO]] = (userId: String) =>
-      for {
-        body <- request.as[String]
-        deck <- decode[AnkiGenericRequest](body) match {
-          case Left(_) => IO(None)
-          case Right(ankiRequest) => if (ankiRequest.data.nonEmpty)
-            readDeckWithCards(ankiRequest.data, userId, cache) else IO(None)
+      request.as[AnkiGenericRequest].redeemWith(
+        error => logger[IO].error(error)("Cannot parse anki generic request.") *> IO(None),
+        ankiRequest => readDeckWithCards(ankiRequest.data, userId, cache))
+        .flatMap {
+          case Some(deck) => IO(Response(Status.Ok).withEntity(DeckResponse(deck)))
+          case None => IO(Response(Status.Accepted).withEntity(ErrorResponse(s"Deck not found.")))
         }
-      } yield deck match {
-        case Some(deck) => Response(Status.Ok).withEntity(DeckResponse(deck))
-        case None => Response(Status.Accepted).withEntity(ErrorResponse(s"Deck not found."))
-      }
     executeAuthenticated(request, cache, lastGeneratedDeck)
   }
 
@@ -185,18 +180,14 @@ object DeckDispatcher {
     } yield Deck.from(cardList.toSet, description)
 
   private def executeValidated(request: Request[IO], function: Deck => IO[Response[IO]]): IO[Response[IO]] =
-    request.as[String].flatMap {
-      body =>
-        decode[DeckRequest](body) match {
-          case Left(_) =>
-            IO(Response(Status.Accepted).withEntity(ErrorResponse("Cannot parse deck from request body.")))
-          case Right(deckData) => {
-            DeckValidator.validate(deckData.cards.toList, deckData.description).toEither match {
-              case Left(errors) => IO(Response(Status.Accepted)
-                .withEntity(MultiErrorResponse(errors.map(_.message).toNonEmptyList.toList.toArray)))
-              case Right(deck) => function.apply(deck)
-            }
-          }
-        }
-    }
+    request.as[DeckRequest].redeemWith(
+      error =>
+        logger[IO].error(error)("Cannot parse deck request.") *>
+          IO(Response(Status.Accepted).withEntity(ErrorResponse("Cannot parse deck from request body."))),
+      deckRequest =>
+        DeckValidator.validate(deckRequest.cards.toList, deckRequest.description).toEither match {
+          case Left(errors) => IO(Response(Status.Accepted)
+            .withEntity(MultiErrorResponse(errors.map(_.message).toNonEmptyList.toList.toArray)))
+          case Right(deck) => function.apply(deck)
+        })
 }

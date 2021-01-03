@@ -15,8 +15,7 @@ import edu.evolution.varanovich.anki.utility.CryptoUtility.{encryptSHA256, gener
 import edu.evolution.varanovich.anki.validator.UserValidator
 import io.chrisdavenport.log4cats.slf4j.Slf4jLogger
 import io.circe.generic.codec.DerivedAsObjectCodec.deriveCodec
-import io.circe.parser.decode
-import org.http4s.circe.CirceEntityCodec.circeEntityEncoder
+import org.http4s.circe.CirceEntityCodec.{circeEntityEncoder, _}
 import org.http4s.{Request, Response, Status}
 
 object UserDispatcher {
@@ -118,18 +117,15 @@ object UserDispatcher {
       }, (_: Int) => WrongPassword)
 
   private def executeValidated(request: Request[IO], function: User => IO[Response[IO]]): IO[Response[IO]] =
-    request.as[String].flatMap {
-      body =>
-        decode[UserRequest](body) match {
-          case Left(_) =>
-            IO(Response(Status.Accepted).withEntity(ErrorResponse("Cannot parse user from request body.")))
-          case Right(userData) =>
-            UserValidator.validate(userData.name, userData.password, "member").toEither match {
-              case Left(errors) =>
-                IO(Response(Status.Accepted)
-                  .withEntity(MultiErrorResponse(errors.map(_.message).toNonEmptyList.toList.toArray)))
-              case Right(user) => function(user)
-            }
-        }
-    }
+    request.as[UserRequest].redeemWith(
+      error =>
+        logger[IO].error(error)("Cannot parse user request.") *>
+          IO(Response(Status.Accepted).withEntity(ErrorResponse("Cannot parse user from request body."))),
+      userRequest =>
+        UserValidator.validate(userRequest.name, userRequest.password, "member").toEither match {
+          case Left(errors) =>
+            IO(Response(Status.Accepted)
+              .withEntity(MultiErrorResponse(errors.map(_.message).toNonEmptyList.toList.toArray)))
+          case Right(user) => function(user)
+        })
 }

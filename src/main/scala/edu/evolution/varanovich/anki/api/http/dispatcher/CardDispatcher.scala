@@ -6,7 +6,6 @@ import cats.effect.{ContextShift, IO, Sync}
 import doobie.implicits._
 import edu.evolution.varanovich.anki.api.http.AnkiErrorCode.{OperationSuccess, ServerError}
 import edu.evolution.varanovich.anki.api.http.AnkiServer.ServerErrorResponse
-import edu.evolution.varanovich.anki.api.http.dispatcher.DeckDispatcher.logger
 import edu.evolution.varanovich.anki.api.http.dispatcher.DispatcherUtility.executeAuthenticated
 import edu.evolution.varanovich.anki.api.http.protocol.AnkiRequest.CreateAnswerInfoRequest
 import edu.evolution.varanovich.anki.api.http.protocol.AnkiResponse.{AnkiGenericResponse, CardsForImproveResponse, ErrorResponse}
@@ -19,8 +18,7 @@ import edu.evolution.varanovich.anki.db.program.domain.DeckProgram._
 import edu.evolution.varanovich.anki.model.{AnswerInfo, Card}
 import io.chrisdavenport.log4cats.slf4j.Slf4jLogger
 import io.circe.generic.codec.DerivedAsObjectCodec.deriveCodec
-import io.circe.parser.decode
-import org.http4s.circe.CirceEntityCodec.circeEntityEncoder
+import org.http4s.circe.CirceEntityCodec.{circeEntityEncoder, _}
 import org.http4s.{Request, Response, Status}
 
 object CardDispatcher {
@@ -143,12 +141,9 @@ object CardDispatcher {
 
   private def executeValidated(request: Request[IO], function: (String, Card, AnswerInfo) => IO[Response[IO]]):
   IO[Response[IO]] =
-    request.as[String].flatMap {
-      body =>
-        decode[CreateAnswerInfoRequest](body) match {
-          case Left(_) =>
-            IO(Response(Status.Accepted).withEntity(ErrorResponse("Cannot parse 'answer info' request.")))
-          case Right(data) => function.apply(data.identity, data.card, data.info)
-        }
-    }
+    request.as[CreateAnswerInfoRequest].redeemWith(
+      error =>
+        logger[IO].error(error)("Cannot parse answer info request.") *>
+          IO(Response(Status.Accepted).withEntity(ErrorResponse("Cannot parse 'answer info' request."))),
+      answerInfoRequest => function.apply(answerInfoRequest.identity, answerInfoRequest.card, answerInfoRequest.info))
 }
