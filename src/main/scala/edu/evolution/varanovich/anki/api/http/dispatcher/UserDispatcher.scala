@@ -1,44 +1,39 @@
 package edu.evolution.varanovich.anki.api.http.dispatcher
 
-import cats.effect.{ContextShift, IO, Sync}
-import doobie.implicits._
+import cats.effect.{IO, Resource}
+import doobie.Transactor
 import edu.evolution.varanovich.anki.api.http.AnkiErrorCode._
 import edu.evolution.varanovich.anki.api.http.AnkiServer._
 import edu.evolution.varanovich.anki.api.http.protocol.AnkiRequest.UserRequest
 import edu.evolution.varanovich.anki.api.http.protocol.AnkiResponse._
 import edu.evolution.varanovich.anki.api.session.Session.Cache
 import edu.evolution.varanovich.anki.api.session.UserSession
-import edu.evolution.varanovich.anki.db.DbManager
+import edu.evolution.varanovich.anki.db.DbManager.runTransaction
 import edu.evolution.varanovich.anki.db.program.domain.UserProgram._
 import edu.evolution.varanovich.anki.model.User
 import edu.evolution.varanovich.anki.utility.CryptoUtility.{encryptSHA256, generateToken}
 import edu.evolution.varanovich.anki.validator.UserValidator
-import io.chrisdavenport.log4cats.slf4j.Slf4jLogger
+import io.chrisdavenport.log4cats.SelfAwareStructuredLogger
 import io.circe.generic.codec.DerivedAsObjectCodec.deriveCodec
 import org.http4s.circe.CirceEntityCodec.{circeEntityEncoder, _}
 import org.http4s.{Request, Response, Status}
 
-object UserDispatcher {
-  private implicit def logger[F[_] : Sync] = Slf4jLogger.getLogger[F]
-
-  def doRegister(request: Request[IO], cache: Cache[IO, String, UserSession])(implicit contextShift: ContextShift[IO]):
-  IO[Response[IO]] = {
+final case class UserDispatcher(logger: SelfAwareStructuredLogger[IO])(
+  implicit transactor: Resource[IO, Transactor[IO]], cache: Cache[IO, String, UserSession]) {
+  def doRegister(request: Request[IO]): IO[Response[IO]] = {
     val register: User => IO[Response[IO]] = (user: User) =>
       for {
         token <- IO(generateToken)
-        userOpt <- DbManager.transactor.use(readUser(user.name).transact[IO])
-          .handleErrorWith((ex: Throwable) =>
-            logger[IO].error(ex)("Cannot read user.") *> IO(None))
+        userOpt <- runTransaction(readUser(user.name)).handleErrorWith((ex: Throwable) =>
+          logger.error(ex)("Cannot read user.") *> IO(None))
         saveResult <- userOpt match {
           case Some(_) => IO(AlreadyExists)
-          case None => DbManager.transactor.use(createUser(user).transact[IO])
-            .handleErrorWith((ex: Throwable) =>
-              logger[IO].error(ex)("Cannot save user.") *> IO(ServerError))
+          case None => runTransaction(createUser(user)).handleErrorWith((ex: Throwable) =>
+            logger.error(ex)("Cannot save user.") *> IO(ServerError))
         }
         idOpt <- saveResult match {
-          case OperationSuccess => DbManager.transactor.use(readUserId(user.name).transact[IO])
-            .handleErrorWith((ex: Throwable) =>
-              logger[IO].error(ex)("Cannot receive user identifier by name.") *> IO(None))
+          case OperationSuccess => runTransaction(readUserId(user.name)).handleErrorWith((ex: Throwable) =>
+            logger.error(ex)("Cannot receive user identifier by name.") *> IO(None))
           case _ => IO(None)
         }
         registerResult <- idOpt match {
@@ -58,24 +53,22 @@ object UserDispatcher {
     executeValidated(request, register)
   }
 
-  def doLogin(request: Request[IO], cache: Cache[IO, String, UserSession])(implicit contextShift: ContextShift[IO]):
-  IO[Response[IO]] = {
+  def doLogin(request: Request[IO]): IO[Response[IO]] = {
     val login: User => IO[Response[IO]] = (user: User) =>
       for {
         token <- IO(generateToken)
-        passwordOpt <- DbManager.transactor.use(readPassword(user.name).transact[IO])
-          .handleErrorWith((ex: Throwable) => logger[IO].error(ex)("Cannot receive password.") *> IO(None))
-        idOpt <- DbManager.transactor.use(readUserId(user.name).transact[IO])
-          .handleErrorWith((ex: Throwable) =>
-            logger[IO].error(ex)("Cannot receive user identifier by name.") *> IO(None))
+        passwordOpt <- runTransaction(readPassword(user.name)).handleErrorWith((ex: Throwable) =>
+          logger.error(ex)("Cannot receive password.") *> IO(None))
+        idOpt <- runTransaction(readUserId(user.name)).handleErrorWith((ex: Throwable) =>
+          logger.error(ex)("Cannot receive user identifier by name.") *> IO(None))
         attemptsOpt <- idOpt match {
           case Some(id) => cache.get(id).map(_.map(_.loginAttempts))
           case None => IO(None)
         }
-        isLocked <- DbManager.transactor.use(isLockedUser(user).transact[IO])
-          .handleErrorWith((ex: Throwable) => logger[IO].error(ex)("Cannot lock user.") *> IO(false))
+        isLocked <- runTransaction(isLockedUser(user)).handleErrorWith((ex: Throwable) =>
+          logger.error(ex)("Cannot lock user.") *> IO(false))
         loginResult <- (passwordOpt, idOpt, isLocked) match {
-          case (Some(password), Some(id), false) => tryLogin(password, token, user, attemptsOpt, id, cache)
+          case (Some(password), Some(id), false) => tryLogin(password, token, user, attemptsOpt, id)
           case (_, None, false) => IO(NotExists)
           case (_, _, true) => IO(Blocked)
           case (_, _, _) => IO(ServerError)
@@ -91,35 +84,26 @@ object UserDispatcher {
     executeValidated(request, login)
   }
 
-  private def tryLogin(password: String,
-                       token: String,
-                       user: User,
-                       attemptsOpt: Option[Int],
-                       id: String,
-                       cache: Cache[IO, String, UserSession])(implicit contextShift: ContextShift[IO]): IO[Int] =
+  private def tryLogin(password: String, token: String, user: User, attemptsOpt: Option[Int], id: String): IO[Int] =
     if (password == encryptSHA256(user.password))
       cache.put(id, UserSession(token, user.privileges, user.name)) *> IO(OperationSuccess)
     else attemptsOpt match {
-      case Some(attempts) => reduceAttempts(user, attempts, id, cache)
+      case Some(attempts) => reduceAttempts(user, attempts, id)
       case None => cache.put(id, UserSession("", user.privileges, "")) *> IO(WrongPassword)
     }
 
-  private def reduceAttempts(user: User,
-                             attempts: Int,
-                             id: String,
-                             cache: Cache[IO, String, UserSession])(implicit contextShift: ContextShift[IO]): IO[Int] =
+  private def reduceAttempts(user: User, attempts: Int, id: String): IO[Int] =
     if (attempts > 0)
       cache.put(id, UserSession("", user.privileges, user.name, (attempts - 1))) *> IO(WrongPassword)
-    else DbManager.transactor.use(lockUser(id).transact[IO])
-      .redeem((ex: Throwable) => {
-        logger[IO].error(ex)("Cannot lock user.")
-        ServerError
-      }, (_: Int) => WrongPassword)
+    else runTransaction(lockUser(id)).redeem((ex: Throwable) => {
+      logger.error(ex)("Cannot lock user.")
+      ServerError
+    }, (_: Int) => WrongPassword)
 
   private def executeValidated(request: Request[IO], function: User => IO[Response[IO]]): IO[Response[IO]] =
     request.as[UserRequest].redeemWith(
       error =>
-        logger[IO].error(error)("Cannot parse user request.") *>
+        logger.error(error)("Cannot parse user request.") *>
           IO(Response(Status.Accepted).withEntity(ErrorResponse("Cannot parse user from request body."))),
       userRequest =>
         UserValidator.validate(userRequest.name, userRequest.password, "member").toEither match {

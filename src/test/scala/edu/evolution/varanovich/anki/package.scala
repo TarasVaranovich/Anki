@@ -2,9 +2,10 @@ package edu.evolution.varanovich
 
 import edu.evolution.varanovich.anki.model.PartOfSpeech._
 import edu.evolution.varanovich.anki.model.{Card, Deck, Privileges, User}
-import edu.evolution.varanovich.anki.domain.DeckBuilder.GeneratedDeckName
 
 package object anki {
+  val GeneratedDeckName = "Generated deck"
+
   //ADJECTIVES
   val bigAdjectiveOpt: Option[Adjective] =
     Adjective.from("big", "большой", "[bɪɡ]]", "bigger", "biggest")

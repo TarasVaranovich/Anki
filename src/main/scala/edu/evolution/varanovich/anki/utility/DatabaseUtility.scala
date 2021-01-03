@@ -1,9 +1,11 @@
 package edu.evolution.varanovich.anki.utility
 
-import cats.effect.{ExitCode, IO, IOApp}
+import cats.effect.{ExitCode, IO, IOApp, Resource}
 import cats.implicits._
+import doobie.Transactor
 import doobie.implicits._
 import edu.evolution.varanovich.anki.db.DbManager
+import edu.evolution.varanovich.anki.db.DbManager.runTransaction
 import edu.evolution.varanovich.anki.db.program.domain.AnswerInfoProgram.createAnswerInfoTable
 import edu.evolution.varanovich.anki.db.program.domain.CardProgram.createCardTable
 import edu.evolution.varanovich.anki.db.program.domain.DeckProgram.createDeckTable
@@ -19,41 +21,43 @@ import edu.evolution.varanovich.anki.file.{DataParser, DataReader, FileAliases}
 
 object DatabaseUtility extends IOApp {
   override def run(args: List[String]): IO[ExitCode] = {
-    if (args.nonEmpty) {
-      (args.head match {
-        case "init" => initDatabaseTables
-        case "drop" => dropDatabaseTables
-        case param => IO(println(s"Unknown parameter '$param'"))
-      }) *> IO(ExitCode.Success)
-    } else IO(println("Put arguments 'init' or 'drop'.")) *> IO(ExitCode.Error)
+    IO(DbManager.transactorInstance).flatMap(transactor =>
+      if (args.nonEmpty) {
+        (args.head match {
+          case "init" => initDatabaseTables(transactor)
+          case "drop" => dropDatabaseTables(transactor)
+          case param => IO(println(s"Unknown parameter '$param'"))
+        }) *> IO(ExitCode.Success)
+      } else IO(println("Put arguments 'init' or 'drop'.")) *> IO(ExitCode.Error)
+    )
   }
 
-  def initDatabaseTables: IO[Unit] = {
+  def initDatabaseTables(implicit transactor: Resource[IO, Transactor[IO]]): IO[Unit] = {
     val createVocabulary = createAdjectiveTable *> createNounTable *>
       createPhraseTable *> createPrepositionTable *> createVerbTable
     val createAnki = createUserTable *> createDeckTable *> createCardTable *> createAnswerInfoTable
 
     for {
-      _ <- DbManager.transactorBlock(createVocabulary *> createAnki)
+      _ <- runTransaction(createVocabulary *> createAnki)
       adjectives <- DataReader.all(FileAliases.Adjective, DataParser.adjective)
-      _ <- DbManager.transactor.use(createAdjectiveListSafely(adjectives.toList).transact[IO])
+      _ <- runTransaction(createAdjectiveListSafely(adjectives.toList))
       nouns <- DataReader.all(FileAliases.Noun, DataParser.noun)
-      _ <- DbManager.transactor.use(createNounListSafely(nouns.toList).transact[IO])
+      _ <- runTransaction(createNounListSafely(nouns.toList))
       phrases <- DataReader.all(FileAliases.Phrase, DataParser.phrase)
-      _ <- DbManager.transactor.use(createPhraseListSafely(phrases.toList).transact[IO])
+      _ <- runTransaction(createPhraseListSafely(phrases.toList))
       prepositions <- DataReader.all(FileAliases.Preposition, DataParser.preposition)
-      _ <- DbManager.transactor.use(createPrepositionListSafely(prepositions.toList).transact[IO])
+      _ <- runTransaction(createPrepositionListSafely(prepositions.toList))
       verbs <- DataReader.all(FileAliases.Verb, DataParser.verb)
-      _ <- DbManager.transactor.use(createVerbListSafely(verbs.toList).transact[IO])
+      _ <- DbManager.transactorInstance.use(createVerbListSafely(verbs.toList).transact[IO])
     } yield ()
   }
 
-  def dropDatabaseTables: IO[Unit] = {
+  def dropDatabaseTables(implicit transactor: Resource[IO, Transactor[IO]]): IO[Unit] = {
     val dropVocabulary = dropTable("adjective") *> dropTable("noun") *> dropTable("preposition") *>
       dropTable("phrase") *> dropTable("verb")
     val dropAnki = dropTable("answer_info") *> dropTable("card") *> dropTable("deck") *>
       dropTable("anki_user") *> dropType("privileges_enum") *> dropType("rate_enum")
 
-    DbManager.transactorBlock(dropVocabulary *> dropAnki).map(_ => ())
+    runTransaction(dropVocabulary *> dropAnki).map(_ => ())
   }
 }

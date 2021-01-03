@@ -6,23 +6,26 @@ import cats.implicits._
 import doobie.implicits._
 import edu.evolution.varanovich.anki._
 import edu.evolution.varanovich.anki.db.DbManager
-import edu.evolution.varanovich.anki.db.program.service.ServiceProgram._
+import edu.evolution.varanovich.anki.db.DbManager.runTransaction
 import edu.evolution.varanovich.anki.db.program.entity.VerbProgram._
+import edu.evolution.varanovich.anki.db.program.service.ServiceProgram._
 import org.scalatest.freespec.AsyncFreeSpec
 import org.scalatest.matchers.should.Matchers
 
 class VerbProgramSpec extends AsyncFreeSpec with AsyncIOSpec with Matchers {
+  private implicit val transactor = DbManager.transactorInstance
+
   "should successfully perform 'CRUD' operations" in {
     for {
       verb <- IO.fromOption(consistVerbOpt)(throw new Exception("Verb not created."))
-      insertResult <- DbManager.transactorBlock(createVerbTable *> createVerb(verb))
+      insertResult <- runTransaction(createVerbTable *> createVerb(verb))
       verbModified <- IO.fromOption(consistVerbModifiedOpt)(throw new Exception("Modified verb not created"))
-      updateResult <- DbManager.transactor.use(updateVerb(verbModified).transact[IO])
-      resultOpt <- DbManager.transactor.use(readVerb(verb.value).transact[IO])
+      updateResult <- runTransaction(updateVerb(verbModified))
+      resultOpt <- runTransaction(readVerb(verb.value))
       result <- IO.fromOption(resultOpt)(throw new Exception("Verb not found"))
-      deleteResult <- DbManager.transactor.use(deleteVerb(verb).transact[IO])
-      deleted <- DbManager.transactor.use(readVerb(verb.value).transact[IO])
-      dropResult <- DbManager.transactor.use(dropTable("verb").transact[IO])
+      deleteResult <- runTransaction(deleteVerb(verb))
+      deleted <- runTransaction(readVerb(verb.value))
+      dropResult <- runTransaction(dropTable("verb"))
     } yield {
       assert(insertResult == 1)
       assert(updateResult == 1)
@@ -36,9 +39,9 @@ class VerbProgramSpec extends AsyncFreeSpec with AsyncIOSpec with Matchers {
   "should successfully perform list operations" in {
     for {
       list <- IO(List(consistVerbOpt, discoverVerbOpt).sequence.getOrElse(List()))
-      createResult <- DbManager.transactorBlock(createVerbTable *> createVerbListSafely(list))
-      listResult <- DbManager.transactor.use(readAllVerbs.transact[IO])
-      dropTableResult <- DbManager.transactor.use(dropTable("verb").transact[IO])
+      createResult <- runTransaction(createVerbTable *> createVerbListSafely(list))
+      listResult <- runTransaction(readAllVerbs)
+      dropTableResult <- runTransaction(dropTable("verb"))
     } yield {
       assert(createResult == 2)
       assert(listResult == list)
@@ -49,10 +52,10 @@ class VerbProgramSpec extends AsyncFreeSpec with AsyncIOSpec with Matchers {
   "should successfully read by identifier" in {
     for {
       list <- IO(List(consistVerbOpt, discoverVerbOpt).sequence.getOrElse(List()))
-      _ <- DbManager.transactorBlock(createVerbTable *> createVerbListSafely(list))
-      phraseOpt <- DbManager.transactor.use(readVerbById(2).transact[IO])
+      _ <- runTransaction(createVerbTable *> createVerbListSafely(list))
+      phraseOpt <- runTransaction(readVerbById(2))
       phrase <- IO.fromOption(phraseOpt)(throw new Exception("Verb not found."))
-      _ <- DbManager.transactor.use(dropTable("verb").transact[IO])
+      _ <- runTransaction(dropTable("verb"))
     } yield {
       assert(phrase.value == "discover")
     }

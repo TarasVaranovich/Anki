@@ -2,7 +2,8 @@ package edu.evolution.varanovich.anki.api.http.dispatcher
 
 import java.util.UUID
 
-import cats.effect.{ContextShift, IO, Sync}
+import cats.effect.{IO, Resource}
+import doobie.Transactor
 import doobie.implicits._
 import edu.evolution.varanovich.anki.api.http.AnkiErrorCode.{OperationSuccess, ServerError}
 import edu.evolution.varanovich.anki.api.http.AnkiServer.ServerErrorResponse
@@ -11,45 +12,41 @@ import edu.evolution.varanovich.anki.api.http.protocol.AnkiRequest.CreateAnswerI
 import edu.evolution.varanovich.anki.api.http.protocol.AnkiResponse.{AnkiGenericResponse, CardsForImproveResponse, ErrorResponse}
 import edu.evolution.varanovich.anki.api.session.Session.Cache
 import edu.evolution.varanovich.anki.api.session.UserSession
-import edu.evolution.varanovich.anki.db.DbManager
+import edu.evolution.varanovich.anki.db.DbManager.runTransaction
 import edu.evolution.varanovich.anki.db.program.domain.AnswerInfoProgram
 import edu.evolution.varanovich.anki.db.program.domain.CardProgram._
 import edu.evolution.varanovich.anki.db.program.domain.DeckProgram._
 import edu.evolution.varanovich.anki.model.{AnswerInfo, Card}
-import io.chrisdavenport.log4cats.slf4j.Slf4jLogger
+import io.chrisdavenport.log4cats.SelfAwareStructuredLogger
 import io.circe.generic.codec.DerivedAsObjectCodec.deriveCodec
 import org.http4s.circe.CirceEntityCodec.{circeEntityEncoder, _}
 import org.http4s.{Request, Response, Status}
 
-object CardDispatcher {
-  private implicit def logger[F[_] : Sync] = Slf4jLogger.getLogger[F]
-
-  def createAnswerInfo(request: Request[IO], cache: Cache[IO, String, UserSession])(implicit contextShift: ContextShift[IO]):
-  IO[Response[IO]] = {
+final case class CardDispatcher(logger: SelfAwareStructuredLogger[IO])(
+  implicit transactor: Resource[IO, Transactor[IO]], cache: Cache[IO, String, UserSession]) {
+  def createAnswerInfo(request: Request[IO]): IO[Response[IO]] = {
     val createInfo: String => IO[Response[IO]] = (userId: String) => {
       val createAnswerInfoInDatabase: (String, Card, AnswerInfo) => IO[Response[IO]] =
         (description: String, card: Card, info: AnswerInfo) =>
           for {
             userNameOpt <- cache.get(userId).map(_.map(_.userName))
             deckIdOpt <- userNameOpt match {
-              case Some(name) => DbManager.transactor.use(
-                readDeckIdByDescriptionAndUserName(description, name).transact[IO])
+              case Some(name) => runTransaction(readDeckIdByDescriptionAndUserName(description, name))
                 .handleErrorWith((ex: Throwable) =>
-                  logger[IO].error(ex)("Cannot find deck by description and user.") *> IO(None))
+                  logger.error(ex)("Cannot find deck by description and user.") *> IO(None))
               case None => IO(None)
             }
             cardIdOpt <- deckIdOpt match {
-              case Some(deckId) =>
-                DbManager.transactor.use(readCardIdByDeckIdAndContent(deckId, card).transact[IO])
-                  .handleErrorWith((ex: Throwable) =>
-                    logger[IO].error(ex)("Cannot find card by deck and content.") *> IO(None))
+              case Some(deckId) => runTransaction(readCardIdByDeckIdAndContent(deckId, card))
+                .handleErrorWith((ex: Throwable) =>
+                  logger.error(ex)("Cannot find card by deck and content.") *> IO(None))
               case None => IO(None)
             }
             saveResult <- cardIdOpt match {
               case Some(cardId) =>
-                DbManager.transactor.use(AnswerInfoProgram.createAnswerInfo(info, cardId).transact[IO])
+                runTransaction(AnswerInfoProgram.createAnswerInfo(info, cardId))
                   .handleErrorWith((ex: Throwable) =>
-                    logger[IO].error(ex)("Cannot save answer info.") *> IO(ServerError))
+                    logger.error(ex)("Cannot save answer info.") *> IO(ServerError))
               case None => IO(ServerError)
             }
           } yield saveResult match {
@@ -62,19 +59,16 @@ object CardDispatcher {
     executeAuthenticated(request, cache, createInfo)
   }
 
-  def improveAnswerInfo(request: Request[IO],
-                        cache: Cache[IO, String, UserSession])(implicit contextShift: ContextShift[IO]):
-  IO[Response[IO]] = {
+  def improveAnswerInfo(request: Request[IO]): IO[Response[IO]] = {
     val improveInfo: String => IO[Response[IO]] = (userId: String) => {
       val createAnswerInfoInDatabase: (String, Card, AnswerInfo) => IO[Response[IO]] =
         (cardUUID: String, _: Card, info: AnswerInfo) =>
           for {
             cardIdOpt <- cache.get(userId).map(_.map(_.keyAliasMap).flatMap(_.get(cardUUID)))
             saveResult <- cardIdOpt match {
-              case Some(cardId) => DbManager.transactor.use(
-                AnswerInfoProgram.createAnswerInfo(info, cardId).transact[IO])
+              case Some(cardId) => runTransaction(AnswerInfoProgram.createAnswerInfo(info, cardId))
                 .handleErrorWith((ex: Throwable) =>
-                  logger[IO].error(ex)("Cannot save answer info.") *> IO(ServerError))
+                  logger.error(ex)("Cannot save answer info.") *> IO(ServerError))
               case None => IO(ServerError)
             }
           } yield saveResult match {
@@ -87,30 +81,28 @@ object CardDispatcher {
     executeAuthenticated(request, cache, improveInfo)
   }
 
-  def doCardsForImprove(request: Request[IO],
-                        cache: Cache[IO, String, UserSession],
-                        limit: String)(implicit contextShift: ContextShift[IO]): IO[Response[IO]] = {
+  def doCardsForImprove(request: Request[IO], limit: String): IO[Response[IO]] = {
     val takeIfNotEnough: (Int, Int, List[Int]) => IO[List[(Int, Card)]] =
       (given: Int, required: Int, fromDecks: List[Int]) =>
-        if (given < required) DbManager.transactor.use(
-          readCardInfoWithSlowestSufficientAnswer(fromDecks, (required - given)).transact[IO])
+        if (given < required) runTransaction(
+          readCardInfoWithSlowestSufficientAnswer(fromDecks, (required - given)))
           .handleErrorWith((ex: Throwable) =>
-            logger[IO].error(ex)("Cannot read card info with slowest answer.") *> IO(List())) else IO(List())
+            logger.error(ex)("Cannot read card info with slowest answer.") *> IO(List())) else IO(List())
 
     if (limit.matches("^[0-9]*$")) {
       val selectCardsForImprove: String => IO[Response[IO]] = (userId: String) =>
         for {
           userNameOpt <- cache.get(userId).map(_.map(_.userName))
           deckIdList <- userNameOpt match {
-            case Some(name) => DbManager.transactor.use(readDeckIdListByUserName(name).transact[IO])
+            case Some(name) => runTransaction(readDeckIdListByUserName(name))
               .handleErrorWith((ex: Throwable) =>
-                logger[IO].error(ex)("Cannot receive decks by user.") *> IO(List()))
+                logger.error(ex)("Cannot receive decks by user.") *> IO(List()))
             case None => IO(List())
           }
-          insufficientCardList <- DbManager.transactor.use(
-            readCardInfoListWithInsufficientAnswer(deckIdList, limit.toInt).transact[IO])
+          insufficientCardList <- runTransaction(
+            readCardInfoListWithInsufficientAnswer(deckIdList, limit.toInt))
             .handleErrorWith((ex: Throwable) =>
-              logger[IO].error(ex)("Cannot read card infos with insufficient answer") *> IO(List()))
+              logger.error(ex)("Cannot read card infos with insufficient answer") *> IO(List()))
           sampleSize <- IO(insufficientCardList.size)
           sufficientCardList <- takeIfNotEnough(sampleSize, limit.toInt, deckIdList)
           resultList <- IO((insufficientCardList ++ sufficientCardList).distinct)
@@ -143,7 +135,7 @@ object CardDispatcher {
   IO[Response[IO]] =
     request.as[CreateAnswerInfoRequest].redeemWith(
       error =>
-        logger[IO].error(error)("Cannot parse answer info request.") *>
+        logger.error(error)("Cannot parse answer info request.") *>
           IO(Response(Status.Accepted).withEntity(ErrorResponse("Cannot parse 'answer info' request."))),
       answerInfoRequest => function.apply(answerInfoRequest.identity, answerInfoRequest.card, answerInfoRequest.info))
 }

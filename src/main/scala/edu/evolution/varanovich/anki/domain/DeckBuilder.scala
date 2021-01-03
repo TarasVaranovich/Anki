@@ -3,65 +3,38 @@ package edu.evolution.varanovich.anki.domain
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
 
-import cats.effect.{ContextShift, IO}
-import doobie.implicits._
-import edu.evolution.varanovich.anki.config.VocabularyConfig
-import edu.evolution.varanovich.anki.db.DbManager
+import cats.effect.{IO, Resource}
+import doobie.Transactor
+import edu.evolution.varanovich.anki.config.{AnkiConfig, VocabularyConfig}
+import edu.evolution.varanovich.anki.db.DbManager.runTransaction
 import edu.evolution.varanovich.anki.db.program.entity.AdjectiveProgram.readAdjectiveById
 import edu.evolution.varanovich.anki.db.program.entity.NounProgram.readNounById
 import edu.evolution.varanovich.anki.db.program.entity.PhraseProgram.readPhraseById
 import edu.evolution.varanovich.anki.db.program.entity.PrepositionProgram.readPrepositionById
 import edu.evolution.varanovich.anki.db.program.entity.VerbProgram.readVerbById
 import edu.evolution.varanovich.anki.db.program.service.ServiceProgram.{readMaxId, readRowsCount}
-import edu.evolution.varanovich.anki.domain.DeckBuilder.Alias._
+import edu.evolution.varanovich.anki.domain.Alias._
 import edu.evolution.varanovich.anki.model.{Card, Deck, PartOfSpeech}
 
 import scala.util.Random
 
-object DeckBuilder {
-  val GeneratedDeckName: String = "Automatically generated deck from"
-  sealed trait Alias {
-    def name: String
-  }
-  object Alias {
-    case object Adjective extends Alias {
-      override def name: String = "adjective"
-    }
-    case object Noun extends Alias {
-      override def name: String = "noun"
-    }
-    case object Phrase extends Alias {
-      override def name: String = "phrase"
-    }
-    case object Preposition extends Alias {
-      override def name: String = "preposition"
-    }
-    case object Verb extends Alias {
-      override def name: String = "verb"
-    }
-  }
-
-  final case class Partition(averageSize: Int, extendedSize: Int)
-  object Partition {
-    def empty: Partition = Partition(0, 0)
-  }
-
-  def randomDeck(size: Int)(implicit contextShift: ContextShift[IO]): IO[Option[Deck]] = {
+final case class DeckBuilder(config: AnkiConfig)(implicit transactor: Resource[IO, Transactor[IO]]) {
+  def randomDeck(size: Int): IO[Option[Deck]] = {
     for {
       partition <- partitionSelection(size)
-      adjectiveMaxIdOpt <- DbManager.transactor.use(readMaxId(Alias.Adjective.name).transact[IO])
+      adjectiveMaxIdOpt <- runTransaction(readMaxId(Alias.Adjective.name))
       adjectiveMaxId <- IO(adjectiveMaxIdOpt.getOrElse(0))
       adjectiveSet <- getRandomPartOfSpeechSet(partition.averageSize, adjectiveMaxId, Adjective)
-      nounMaxIdOpt <- DbManager.transactor.use(readMaxId(Alias.Noun.name).transact[IO])
+      nounMaxIdOpt <- runTransaction(readMaxId(Alias.Noun.name))
       nounMaxId <- IO(nounMaxIdOpt.getOrElse(0))
       nounSet <- getRandomPartOfSpeechSet(partition.averageSize, nounMaxId, Noun)
-      phraseMaxIdOpt <- DbManager.transactor.use(readMaxId(Alias.Phrase.name).transact[IO])
+      phraseMaxIdOpt <- runTransaction(readMaxId(Alias.Phrase.name))
       phraseMaxId <- IO(phraseMaxIdOpt.getOrElse(0))
       phraseSet <- getRandomPartOfSpeechSet(partition.averageSize, phraseMaxId, Phrase)
-      prepositionMaxIdOpt <- DbManager.transactor.use(readMaxId(Alias.Preposition.name).transact[IO])
+      prepositionMaxIdOpt <- runTransaction(readMaxId(Alias.Preposition.name))
       prepositionMaxId <- IO(prepositionMaxIdOpt.getOrElse(0))
       prepositionSet <- getRandomPartOfSpeechSet(partition.averageSize, prepositionMaxId, Preposition)
-      verbMaxIdOpt <- DbManager.transactor.use(readMaxId(Alias.Verb.name).transact[IO])
+      verbMaxIdOpt <- runTransaction(readMaxId(Alias.Verb.name))
       verbMaxId <- IO(verbMaxIdOpt.getOrElse(0))
       verbSet <- getRandomPartOfSpeechSet(partition.extendedSize, verbMaxId, Verb)
     } yield {
@@ -72,21 +45,21 @@ object DeckBuilder {
       val verbCards = verbSet.map(Card.valueOf)
       val summary = adjectiveCards ++ nounCards ++ phraseCards ++ prepositionCards ++ verbCards
       val formatter: DateTimeFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")
-      Deck.from(summary, s"$GeneratedDeckName ${LocalDateTime.now().format(formatter)}")
+      Deck.from(summary, s"${config.generatedDeckName} ${LocalDateTime.now().format(formatter)}")
     }
   }
 
-  private def partitionSelection(cardCount: Int)(implicit contextShift: ContextShift[IO]): IO[Partition] = {
+  private def partitionSelection(cardCount: Int): IO[Partition] = {
     for {
-      adjectiveCountOpt <- DbManager.transactor.use(readRowsCount(Adjective.name).transact[IO])
+      adjectiveCountOpt <- runTransaction(readRowsCount(Adjective.name))
       adjectiveCount <- IO(adjectiveCountOpt.getOrElse(0))
-      nounCountOpt <- DbManager.transactor.use(readRowsCount(Noun.name).transact[IO])
+      nounCountOpt <- runTransaction(readRowsCount(Noun.name))
       nounCount <- IO(nounCountOpt.getOrElse(0))
-      phraseCountOpt <- DbManager.transactor.use(readRowsCount(Phrase.name).transact[IO])
+      phraseCountOpt <- runTransaction(readRowsCount(Phrase.name))
       phraseCount <- IO(phraseCountOpt.getOrElse(0))
-      prepositionCountOpt <- DbManager.transactor.use(readRowsCount(Preposition.name).transact[IO])
+      prepositionCountOpt <- runTransaction(readRowsCount(Preposition.name))
       prepositionCount <- IO(prepositionCountOpt.getOrElse(0))
-      verbCountOpt <- DbManager.transactor.use(readRowsCount(Verb.name).transact[IO])
+      verbCountOpt <- runTransaction(readRowsCount(Verb.name))
       verbCount <- IO(verbCountOpt.getOrElse(0))
     } yield {
       val counts = adjectiveCount :: nounCount :: phraseCount :: prepositionCount :: verbCount :: Nil
@@ -110,8 +83,7 @@ object DeckBuilder {
   private def getRandomPartOfSpeechSet(count: Int,
                                        rangeLimit: Int,
                                        partOfSpeech: Alias,
-                                       partOfSpeechSet: Set[PartOfSpeech] = Set())(implicit contextShift: ContextShift[IO]):
-  IO[Set[PartOfSpeech]] = {
+                                       partOfSpeechSet: Set[PartOfSpeech] = Set()): IO[Set[PartOfSpeech]] = {
     if (partOfSpeechSet.size < count) {
       val id = Random.between(1, rangeLimit)
       for {
@@ -124,12 +96,11 @@ object DeckBuilder {
     } else IO(partOfSpeechSet)
   }
 
-  private def resolveQuery(partOfSpeech: Alias, id: Int)(implicit contextShift: ContextShift[IO]):
-  IO[Option[PartOfSpeech]] = partOfSpeech match {
-    case Adjective => DbManager.transactor.use(readAdjectiveById(id).transact[IO])
-    case Noun => DbManager.transactor.use(readNounById(id).transact[IO])
-    case Phrase => DbManager.transactor.use(readPhraseById(id).transact[IO])
-    case Preposition => DbManager.transactor.use(readPrepositionById(id).transact[IO])
-    case Verb => DbManager.transactor.use(readVerbById(id).transact[IO])
+  private def resolveQuery(partOfSpeech: Alias, id: Int): IO[Option[PartOfSpeech]] = partOfSpeech match {
+    case Adjective => runTransaction(readAdjectiveById(id))
+    case Noun => runTransaction(readNounById(id))
+    case Phrase => runTransaction(readPhraseById(id))
+    case Preposition => runTransaction(readPrepositionById(id))
+    case Verb => runTransaction(readVerbById(id))
   }
 }

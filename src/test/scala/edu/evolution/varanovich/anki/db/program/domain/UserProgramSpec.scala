@@ -11,22 +11,25 @@ import edu.evolution.varanovich.anki.utility.CryptoUtility.encryptSHA256
 import org.scalatest.freespec.AsyncFreeSpec
 import org.scalatest.matchers.should.Matchers
 import doobie.implicits._
+import edu.evolution.varanovich.anki.db.DbManager.runTransaction
 
 class UserProgramSpec extends AsyncFreeSpec with AsyncIOSpec with Matchers {
+  private implicit val transactor = DbManager.transactorInstance
+
   "should successfully perform 'CRUD' operations" in {
     for {
       user <- IO.fromOption(userOpt)(throw new Exception("User not created."))
-      insertResult <- DbManager.transactorBlock(createUserTable *> createUser(user))
+      insertResult <- runTransaction(createUserTable *> createUser(user))
       userModified <- IO.fromOption(userModifiedOpt)(throw new Exception("Modified user not created"))
-      updateResult <- DbManager.transactor.use(updateUser(userModified).transact[IO])
-      resultOpt <- DbManager.transactor.use(readUser(user.name).transact[IO])
-      passwordOpt <- DbManager.transactor.use(readPassword(user.name).transact[IO])
+      updateResult <- runTransaction(updateUser(userModified))
+      resultOpt <- runTransaction(readUser(user.name))
+      passwordOpt <- runTransaction(readPassword(user.name))
       password <- IO.fromOption(passwordOpt)(throw new Exception("Modified user's password not found"))
       result <- IO.fromOption(resultOpt)(throw new Exception("User not found"))
-      deleteResult <- DbManager.transactor.use(deleteUser(user).transact[IO])
-      deleted <- DbManager.transactor.use(readUser(user.name).transact[IO])
-      dropTableResult <- DbManager.transactor.use(dropTable("anki_user").transact[IO])
-      dropTypeResult <- DbManager.transactor.use(dropType("privileges_enum").transact[IO])
+      deleteResult <- runTransaction(deleteUser(user))
+      deleted <- runTransaction(readUser(user.name))
+      dropTableResult <- runTransaction(dropTable("anki_user"))
+      dropTypeResult <- runTransaction(dropType("privileges_enum"))
     } yield {
       assert(insertResult == 1)
       assert(updateResult == 1)
@@ -42,15 +45,15 @@ class UserProgramSpec extends AsyncFreeSpec with AsyncIOSpec with Matchers {
   "should successfully lock/unlock user" in {
     for {
       user <- IO.fromOption(userOpt)(throw new Exception("User not created."))
-      _ <- DbManager.transactorBlock(createUserTable *> createUser(user))
-      idOpt <- DbManager.transactor.use(readUserId(user.name).transact[IO])
+      _ <- runTransaction(createUserTable *> createUser(user))
+      idOpt <- runTransaction(readUserId(user.name))
       id <- IO.fromOption(idOpt)(throw new Exception("Id not found."))
-      _ <- DbManager.transactor.use(lockUser(id).transact[IO])
-      locked <- DbManager.transactor.use(isLockedUser(user).transact[IO])
-      _ <- DbManager.transactor.use(unlockUser(id).transact[IO])
-      unlocked <- DbManager.transactor.use(isLockedUser(user).transact[IO])
-      _ <- DbManager.transactor.use(dropTable("anki_user").transact[IO])
-      _ <- DbManager.transactor.use(dropType("privileges_enum").transact[IO])
+      _ <- runTransaction(lockUser(id))
+      locked <- runTransaction(isLockedUser(user))
+      _ <- runTransaction(unlockUser(id))
+      unlocked <- runTransaction(isLockedUser(user))
+      _ <- runTransaction(dropTable("anki_user"))
+      _ <- runTransaction(dropType("privileges_enum"))
     } yield {
       assert(locked)
       assert(!unlocked)

@@ -10,6 +10,6 @@ import org.scalatest.matchers.should.Matchers
 
 class DbManagerSpec extends AsyncFreeSpec with AsyncIOSpec with Matchers {
   "should successfully connect to database" in {
-    DbManager.transactor.use(0.pure[ConnectionIO].transact[IO]).map(result => assert(result == 0))
+    DbManager.transactorInstance.use(0.pure[ConnectionIO].transact[IO]).map(result => assert(result == 0))
   }
 }
